@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>雷雕室計算工具箱</title>
+    <style>
+        /* 共用變數定義 (暗黑/白色卡片混合風格) */
+        :root{
+            --bg:#0b1220;
+            --card:#0f172a;
+            --muted:#94a3b8;
+            --text:#e2e8f0;
+            --line:#1e293b;
+            --accent:#22d3ee;
+            --ok:#4ade80;
+            --warn:#f59e0b;
+            --bg-light: #f8fafc;
+            --card-light: #fff;
+            --text-dark: #0f172a;
+            --muted-dark: #475569;
+            --line-light: #e2e8f0;
+        }
+        
+        /* 基本樣式 */
+        *{box-sizing:border-box} 
+        body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,"Noto Sans TC",Segoe UI,Arial,sans-serif}
+        .wrap{max-width:1200px;margin:0 auto;padding:16px}
+        h1{font-size:24px;margin:0 0 12px;font-weight:800;border-bottom:1px solid var(--line);padding-bottom:8px;}
+        h2{font-size:20px;margin:0 0 12px;font-weight:700;}
+        p.desc{margin:0 0 16px;color:var(--muted);font-size:14px;}
+        
+        /* Tab 樣式 (主要導航) */
+        .main-tabs{display:flex;gap:10px;margin-bottom:16px;border-bottom:1px solid var(--line); overflow-x: auto; padding-bottom: 5px;}
+        .main-tab{flex-shrink: 0; padding:12px 18px;border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;background:#0b1020;cursor:pointer;font-size:16px;font-weight:600;}
+        .main-tab.active{background:var(--card);border-color:#294059;color:var(--accent);}
+        
+        /* 內容區塊 */
+        .tool-content{padding:0;}
+        .grid{display:block;gap:20px} 
+        .card{border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px;}
+        .tool-A .card {background: var(--card);}
+        .tool-B .card {background: var(--card);} 
+        .tool-C .card {background: var(--card);} 
+        .tool-D .card {background: var(--card-light); color: var(--text-dark); border-color: var(--line-light);} 
+
+        /* 子 Tab 樣式 (工具A內) */
+        .sub-tabs{display:flex;gap:10px;margin-bottom:10px}
+        .sub-tab{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0b1020;cursor:pointer;font-size:14px;}
+        .sub-tab.active{background:#102034;border-color:#294059}
+
+        /* 表單元件 */
+        label{display:block;margin:0 0 6px;color:var(--muted);font-size:14px;}
+        .tool-D label {color: var(--muted-dark);} 
+
+        /* 通用輸入框 */
+        input[type=number], input[type=text], select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:16px;}
+        
+        /* 工具 B: 置中排版優化 */
+        .tool-B .card {
+            text-align: center; /* 內容置中 */
+        }
+        .tool-B .row {
+            max-width: 400px; /* 限制輸入框區域寬度並置中 */
+            margin: 0 auto 10px auto; 
+            display: block; /* 確保在小螢幕上也是滿版 */
+        }
+        .tool-B .row > div {
+            margin-bottom: 15px; 
+            text-align: left; /* 輸入框內的標籤左對齊 */
+        }
+        .tool-B .btns {
+            max-width: 400px;
+            margin: 12px auto; /* 按鈕置中 */
+        }
+        
+        /* 工具4 (原工具3) 輸入欄位顏色覆寫 */
+        .tool-D input, .tool-D select {
+            background: var(--bg-light); 
+            color: var(--text-dark); 
+            border-color: var(--line-light);
+            text-align: right;
+        }
+        /* 優化表格內的輸入框樣式 */
+        .tool-D table input[type=number] {
+            width: 60px; 
+            padding: 6px 4px; 
+            text-align: right;
+        }
+        .tool-D td {
+            vertical-align: middle; 
+        }
+        /* 工具 D: 快速填寫區域 */
+        .tool-D .quick-fill {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .tool-D .quick-fill > div {
+            flex: 1 1 120px;
+        }
+        .tool-D .quick-fill button {
+            flex: 0 0 auto;
+            min-width: 120px;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+
+        .row, .row3{display:block;gap:10px;}
+        .row > div, .row3 > div {margin-bottom: 10px;}
+        
+        /* 按鈕樣式 */
+        .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+        button{flex-grow:1;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:#0b1020;color:var(--text);cursor:pointer;font-size:16px;}
+        button.primary{background:var(--accent);color:#001018;border-color:transparent;font-weight:700}
+        
+        /* 加班費工具的按鈕 (工具4) */
+        .tool-D .btn{border:1px solid var(--line-light);background:var(--card-light);padding:6px 10px;border-radius:10px;cursor:pointer; color: var(--text-dark);}
+        .tool-D .btn:hover{background:#f8fafc}
+        
+        /* 結果顯示 */
+        .result{display:grid;grid-template-columns:1fr;gap:10px;margin-top:16px}
+        .metric{background:#0b1020;border:1px dashed #1f2a3a;border-radius:12px;padding:12px; text-align: center;}
+        .metric b{font-size:24px;display:block;margin-top:4px;}
+        /* 工具B, C 樣式調整 */
+        .tool-C .metric { background:#0d1825; border-color:#203040;}
+        .tool-C .metric.main { background:var(--accent); color: #001018; border-color: transparent;}
+        
+        /* 工具 B: 結果樣式統一為 accent */
+        .tool-B .metric { 
+            background:var(--accent); 
+            color: #001018; 
+            border-color: transparent;
+            font-weight: 600; /* 加粗文字 */
+        }
+        .tool-B .metric div {
+            font-weight: normal; /* 標題文字不加粗 */
+            color: #001018;
+        }
+
+        
+        /* 繪圖區 (工具A專用) */
+        canvas{width:100%;min-height:300px;background:#07101f;border:1px solid var(--line);border-radius:14px;display:block;}
+        .hint{font-size:14px;color:var(--muted);margin-top:8px;}
+        .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#0d2236;color:#7dd3fc;border:1px solid #1f3a55;margin-left:6px;font-size:12px;}
+        
+        /* 加班費試算表格樣式 (工具4) */
+        .tool-D table{width:100%;border-collapse:collapse; display: block; overflow-x: auto; color: var(--text-dark);}
+        .tool-D th, .tool-D td{padding:6px;border-bottom:1px solid var(--line-light);font-size:13px; white-space: nowrap;}
+        .tool-D th{font-size:12px;color:var(--muted-dark);background:#f1f5f9;text-align:left}
+        .tool-D .right{text-align:right}
+        .tool-D .summary td:first-child{color:var(--muted-dark)}
+        .tool-D .total{font-weight:800;font-size:18px}
+        .tool-D .muted{font-size:12px;color:var(--muted-dark);background:#f1f5f9;border-radius:10px;padding:8px;margin-top:8px}
+        .ot-select{ width: 100px; }
+
+        /* ----------------------------------------------------- */
+        /* 響應式佈局：在平板或桌機上的優化 (900px以上) */
+        @media (min-width: 900px) {
+            .wrap{padding:24px}
+            .grid{display:grid;gap:20px;}
+            .tool-A .grid {grid-template-columns: 1.2fr 0.8fr;} 
+            /* 工具B 調整為單欄滿版 */
+            .tool-B .grid {grid-template-columns: 1fr;} 
+            .tool-C .grid {grid-template-columns: 1fr 1fr;} 
+            .tool-C .grid > :first-child { grid-column: span 2;} 
+            .tool-D .grid-3 {grid-template-columns: repeat(3, 1fr);} 
+            .card{margin-bottom:0;}
+            .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+            .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+            .row > div, .row3 > div {margin-bottom: 0;}
+            .result{grid-template-columns:repeat(4,minmax(0,1fr));} 
+            .tool-B .result {max-width: 600px; margin: 16px auto;} /* 工具B的結果置中 */
+            .tool-C .result{grid-template-columns:repeat(5,minmax(0,1fr));} 
+            .tool-A canvas{height:520px;}
+            .tool-D .quick-fill {
+                 flex-wrap: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>雷雕室計算工具箱</h1>
+
+        <div class="main-tabs">
+            <div id="mainTabA" class="main-tab active">1. 兩線段求角度</div>
+            <div id="mainTabB" class="main-tab">2. 盤數計算</div>
+            <div id="mainTabC" class="main-tab">3. 快速工時計算</div>
+            <div id="mainTabD" class="main-tab">4. 加班費試算</div>
+        </div>
+
+        <div id="toolAContent" class="tool-content tool-A">
+            <h2>兩線段角度計算 <span class="badge">幾何設計</span></h2>
+            <p class="desc">輸入「<b>原始線段長度 L</b>」與「<b>左右高度 h<sub>L</sub>/h<sub>R</sub></b>」，計算連線斜率產生的夾角。</p>
+            <div class="grid">
+                <div class="card">
+                    <div class="sub-tabs">
+                        <div id="tabLenA" class="sub-tab active">線長 + 左右高度</div>
+                        <div id="tabXYA" class="sub-tab">座標 + 高度</div>
+                    </div>
+
+                    <div id="paneLenA">
+                        <div class="row3">
+                            <div><label for="L">原始線段長度 L</label><input id="L" type="number" step="any" value="100"></div>
+                            <div><label for="hL">左端高度 h<sub>L</sub></label><input id="hL" type="number" step="any" value="10"></div>
+                            <div><label for="hR">右端高度 h<sub>R</sub></label><input id="hR" type="number" step="any" value="25"></div>
+                        </div>
+                    </div>
+
+                    <div id="paneXYA" style="display:none">
+                        <div class="row"><div><label for="x1">起點 A.x</label><input id="x1" type="number" step="any" value="0"></div><div><label for="y1">A.y</label><input id="y1" type="number" step="any" value="0"></div></div>
+                        <div class="row"><div><label for="x2">終點 B.x</label><input id="x2" type="number" step="any" value="100"></div><div><label for="y2">B.y</label><input id="y2" type="number" step="any" value="0"></div></div>
+                        <div class="row"><div><label for="hL2">左端高度 h<sub>L</sub></label><input id="hL2" type="number" step="any" value="10"></div><div><label for="hR2">右端高度 h<sub>R</sub></label><input id="hR2" type="number" step="any" value="25"></div></div>
+                    </div>
+
+                    <div class="btns">
+                        <button class="primary" id="calcBtnA">計算與繪製</button>
+                        <button id="swapBtnA">交換左右高度</button>
+                        <button id="resetBtnA">重設視圖</button>
+                    </div>
+
+                    <div class="result">
+                        <div class="metric"><div>夾角 &theta; (度)</div><b id="degA">—</b></div>
+                        <div class="metric"><div>帶正負號 &theta;</div><b id="degSignedA">—</b></div>
+                        <div class="metric"><div>A'B' 連線長度</div><b id="lenTopA">—</b></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <canvas id="cvA" width="800" height="300"></canvas>
+                    <p class="hint">灰：原始線段 AB。綠：高度。藍：上緣連線。圓弧=角度。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="toolBContent" class="tool-content tool-B" style="display:none;">
+            <h2>盤數計算機 <span class="badge">庫存管理</span></h2>
+            <p class="desc">輸入總數量和每個盤的格數，自動計算盤點結果。</p>
+            <div class="grid">
+                <div class="card">
+                    <div class="row">
+                        <div>
+                            <label for="totalCount">總物料數量</label>
+                            <input id="totalCount" type="number" pattern="[0-9]*" inputmode="numeric" value="123">
+                        </div>
+                        <div>
+                            <label for="trayCapacity">每盤格數</label>
+                            <input id="trayCapacity" type="number" pattern="[0-9]*" inputmode="numeric" value="12">
+                        </div>
+                    </div>
+
+                    <div class="btns">
+                        <button class="primary" id="calcBtnB">重新計算</button>
+                        <button id="resetBtnB">重設數值</button>
+                    </div>
+
+                    <div class="result">
+                        <div class="metric"><div>所需總盤數</div><b id="totalTraysB">—</b></div>
+                        <div class="metric"><div>已滿盤數</div><b id="fullTraysB">—</b></div>
+                        <div class="metric"><div>尾數盤數量</div><b id="remainderB">—</b></div>
+                        <div class="metric"><div>湊滿下一盤還差</div><b id="neededB">—</b></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="toolCContent" class="tool-content tool-C" style="display:none;">
+            <h2>快速工時計算機 <span class="badge">自動扣除休息時段</span></h2>
+            <p class="desc">輸入四位數字時間 (HHMM)，自動計算總工時。預設扣除兩個休息時段的重疊時間：**午休 (12:00~13:00)** 和 **晚休 (17:30~18:00)**。</p>
+            <div class="grid">
+                <div class="card">
+                    <div class="row">
+                        <div>
+                            <label for="startTimeC">開始時間 (HHMM)</label>
+                            <input id="startTimeC" type="number" placeholder="例如：0855" value="0855">
+                        </div>
+                        <div>
+                            <label for="endTimeC">結束時間 (HHMM)</label>
+                            <input id="endTimeC" type="number" placeholder="例如：1810" value="1810">
+                        </div>
+                    </div>
+
+                    <div class="row3" style="margin-top:10px;">
+                        <div>
+                            <label>午休區間</label>
+                            <input type="text" value="1200 ~ 1300" disabled style="text-align:center;">
+                        </div>
+                        <div>
+                            <label>晚休區間</label>
+                            <input type="text" value="1730 ~ 1800" disabled style="text-align:center;">
+                        </div>
+                        <div>
+                            <label>總休息時數</label>
+                            <input type="text" value="90 分鐘" disabled style="text-align:center;">
+                        </div>
+                    </div>
+
+                    <div class="btns">
+                        <button class="primary" id="calcBtnC">計算工時</button>
+                        <button id="resetBtnC">清除輸入</button>
+                    </div>
+
+                    <div class="result">
+                        <div class="metric"><div>輸入工時 (時:分)</div><b id="grossTimeC">—</b></div>
+                        <div class="metric"><div>總時差 (分鐘)</div><b id="grossMinutesC">—</b></div>
+                        <div class="metric"><div>總扣除 (分鐘)</div><b id="deductionC">—</b></div>
+                        <div class="metric main"><div>淨工時 (分鐘)</div><b id="netMinutesC">—</b></div>
+                        <div class="metric main"><div>淨工時 (時:分)</div><b id="netTimeC">—</b></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toolDContent" class="tool-content tool-D" style="display:none;">
+            <h2>加班費試算 <span class="badge">財務與人資</span></h2>
+
+            <div class="grid grid-3">
+                <div class="card">
+                    <div style="font-weight:600;margin-bottom:8px">薪資與工時</div>
+                    <div class="row"><label>底薪</label><input id="salary" type="number" value="35000" /></div>
+                    <div class="row"><label>每月工時</label><input id="monthHours" type="number" value="240" /></div>
+                    <div class="row"><label>年份</label><input id="year" type="number" /></div>
+                    <div class="row"><label>月份</label><input id="month" type="number" min="1" max="12" /></div>
+                    <div class="row"><label>誤餐費</label><input id="meal" type="number" value="60" /></div>
+                    <div class="row"><label>其他扣款</label><input id="other" type="number" value="0" /></div>
+                    <div class="muted">時薪：<b id="hourly">0</b></div>
+                </div>
+
+                <div class="card">
+                    <div style="font-weight:600;margin-bottom:8px">加班倍率</div>
+                    <div class="row"><label>平日前 2 小時</label><input id="r1" type="number" step="0.01" value="1.33" /></div>
+                    <div class="row"><label>平日 2 小時後</label><input id="r2" type="number" step="0.01" value="1.66" /></div>
+                    <div class="row"><label>休息日/國定假日</label><input id="rh" type="number" step="0.01" value="2.0" /></div>
+                </div>
+
+                <div class="card">
+                    <div style="font-weight:600;margin-bottom:8px">勞健保 (個人自付)</div>
+                    <div class="row">
+                        <label for="manualInsured">手動級距金額 (Override)</label>
+                        <input id="manualInsured" type="number" placeholder="留空則自動計算" />
+                    </div>
+                    <div>自動計算投保級距：<b id="insuredAuto"></b></div>
+                    <div style="margin-top:8px">實際採用級距：<b id="insured"></b></div>
+                    <div>勞保（個人）：<span id="labor"></span></div>
+                    <div>健保（個人）：<span id="nhi"></span></div>
+                    <div>合計扣款：<b id="insCombined"></b></div>
+                </div>
+            </div>
+
+
+            <div class="card" style="margin-top:16px">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-weight:600">加班明細（<span id="ym"></span>）</div>
+                </div>
+                
+                <div class="quick-fill">
+                    <div>
+                        <label for="quickDays">平日加班天數 (填3h)</label>
+                        <input id="quickDays" type="number" min="0" value="0" style="text-align:left;"/>
+                    </div>
+                    <button class="primary btn" id="fillWeekday">快速填入平日 (3h)</button>
+                    <button class="btn" id="fillWeekend">快速填入休息日 (8h)</button>
+                    <button class="btn" id="clearHours">清空時數</button>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>日期</th><th>類別</th><th>時數</th><th class="right">加班費</th><th class="right">誤餐</th><th class="right">小計</th></tr>
+                    </thead>
+                    <tbody id="otBody"></tbody>
+                    <tfoot><tr><td colspan="3">合計</td><td class="right" id="sumOTPay">0</td><td class="right" id="sumMeal">0</td><td class="right" id="sumSub">0</td></tr></tfoot>
+                </table>
+            </div>
+
+
+            <div class="card" style="margin-top:16px">
+                <table class="summary">
+                    <tr><td>加班與誤餐合計</td><td class="right" id="sumSubtotal">0</td></tr>
+                    <tr><td>應發（底薪＋加班）</td><td class="right" id="gross">0</td></tr>
+                    <tr><td>勞健保合計扣款</td><td class="right" id="insAll">0</td></tr>
+                    <tr><td>其他扣款</td><td class="right" id="otherAmount">0</td></tr>
+                    <tr><td><b>實領試算</b></td><td class="right total" id="net">0</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+    // 命名空間/變數隔離
+    (function(){
+        const el=(id)=>document.getElementById(id);
+        const PI = Math.PI;
+
+        // --- 輔助函式：Debounce (防抖) - 避免在表格輸入時手機輸入法閃退
+        function debounce(func, delay) {
+            let timeoutId;
+            return function(...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    func.apply(this, args);
+                }, delay);
+            };
+        }
+
+        // --- 主 Tab 切換邏輯 ---
+        const mainTabA=el('mainTabA'),mainTabB=el('mainTabB'),mainTabC=el('mainTabC'),mainTabD=el('mainTabD');
+        const toolAContent=el('toolAContent'),toolBContent=el('toolBContent'),toolCContent=el('toolCContent'),toolDContent=el('toolDContent');
+
+        function switchMainTab(which){
+            mainTabA.classList.toggle('active',which==='A');
+            mainTabB.classList.toggle('active',which==='B');
+            mainTabC.classList.toggle('active',which==='C');
+            mainTabD.classList.toggle('active',which==='D');
+
+            toolAContent.style.display=(which==='A')?'':'none';
+            toolBContent.style.display=(which==='B')?'':'none';
+            toolCContent.style.display=(which==='C')?'':'none';
+            toolDContent.style.display=(which==='D')?'':'none';
+            
+            setTimeout(() => {
+                if(which==='A') computeA(); 
+                else if(which==='B') computeB(); 
+                else if(which==='C') computeC(); 
+                else if(which==='D') { rebuildRowsD(); } 
+            }, 50);
+        }
+        mainTabA.onclick=()=>switchMainTab('A'); 
+        mainTabB.onclick=()=>switchMainTab('B');
+        mainTabC.onclick=()=>switchMainTab('C');
+        mainTabD.onclick=()=>switchMainTab('D');
+
+
+        // ====================================================================
+        // --- 工具 A: 兩線段角度計算 邏輯 (工具 1) ---
+        // ====================================================================
+        const cvA=el('cvA'),ctxA=cvA.getContext('2d');
+        const tabLenA=el('tabLenA'),tabXYA=el('tabXYA'),paneLenA=el('paneLenA'),paneXYA=el('paneXYA');
+        
+        function switchSubTabA(which){
+            const lenMode=(which==='len');
+            tabLenA.classList.toggle('active',lenMode);
+            tabXYA.classList.toggle('active',!lenMode);
+            paneLenA.style.display=lenMode?'':'none';
+            paneXYA.style.display=lenMode?'none':'';
+            computeA();
+        }
+        tabLenA.onclick=()=>switchSubTabA('len'); tabXYA.onclick=()=>switchSubTabA('xy');
+        
+        function drawArrowA(ax,ay,bx,by,color,w=2){
+            const head=8,ang=Math.atan2(by-ay,bx-ax);
+            ctxA.strokeStyle=color;ctxA.lineWidth=w;ctxA.beginPath();ctxA.moveTo(ax,ay);ctxA.lineTo(bx,by);ctxA.stroke();
+            ctxA.beginPath();ctxA.moveTo(bx,by);
+            ctxA.lineTo(bx-head*Math.cos(ang-0.5),by-head*Math.sin(ang-0.5));
+            ctxA.lineTo(bx-head*Math.cos(ang+0.5),by-head*Math.sin(ang+0.5));
+            ctxA.closePath();ctxA.fillStyle=color;ctxA.fill();
+        }
+        function computeFromLenA(){
+            const L=parseFloat(el('L').value),hL=parseFloat(el('hL').value),hR=parseFloat(el('hR').value);
+            if(!isFinite(L)||!isFinite(hL)||!isFinite(hR)||L===0) throw new Error('輸入錯誤');
+            const A={x:0,y:0},B={x:L,y:0},Ap={x:0,y:hL},Bp={x:L,y:hR};
+            return {A,B,Ap,Bp};
+        }
+        function computeFromXYA(){
+            const x1=+el('x1').value,y1=+el('y1').value,x2=+el('x2').value,y2=+el('y2').value,hL=+el('hL2').value,hR=+el('hR2').value;
+            const ABx=x2-x1,ABy=y2-y1,L=Math.hypot(ABx,ABy); if(L===0) throw new Error('AB 長度=0');
+            const nx=-ABy/L,ny=ABx/L; 
+            const A={x:x1,y:y1},B={x:x2,y:y2};
+            const Ap={x:x1+nx*hL,y:y1+ny*hL},Bp={x:x2+nx*hR,y:y2+ny*hR};
+            return {A,B,Ap,Bp};
+        }
+        function calcA(A,B,Ap,Bp){
+            const AB={x:B.x-A.x,y:B.y-A.y},AT={x:Bp.x-Ap.x,y:Bp.y-Ap.y};
+            const dot=AB.x*AT.x+AB.y*AT.y,crs=AB.x*AT.y-AB.y*AT.x;
+            return {
+                deg:Math.abs(Math.atan2(crs,dot)*180/PI),
+                degSigned:Math.atan2(crs,dot)*180/PI,
+                lenTop:Math.hypot(AT.x,AT.y)
+            };
+        }
+        
+        function fitDrawA(A,B,Ap,Bp,ang){
+            ctxA.clearRect(0,0,cvA.width,cvA.height);
+            const pts=[A,B,Ap,Bp];let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+            for(const p of pts){minx=Math.min(minx,p.x);miny=Math.min(miny,p.y);maxx=Math.max(maxx,p.x);maxy=Math.max(maxy,p.y);}
+            
+            const pad=30, w=maxx-minx||1, h=maxy-miny||1;
+            const s=Math.min((cvA.width-2*pad)/w,(cvA.height-2*pad)/h); 
+            
+            const ox=pad-minx*s + (cvA.width - (w*s + 2*pad))/2;
+            const oy=pad-miny*s + (cvA.height - (h*s + 2*pad))/2; 
+
+            const TX=p=>ox+p.x*s;
+            const TY=p=>cvA.height-(oy+p.y*s); 
+
+            drawArrowA(TX(A),TY(A),TX(B),TY(B),'#94a3b8'); 
+            drawArrowA(TX(A),TY(A),TX(Ap),TY(Ap),'#4ade80'); 
+            drawArrowA(TX(B),TY(B),TX(Bp),TY(Bp),'#4ade80'); 
+            drawArrowA(TX(Ap),TY(Ap),TX(Bp),TY(Bp),'#60a5fa',3); 
+            
+            ctxA.fillStyle='#22d3ee';
+            ctxA.font='16px sans-serif'; 
+            ctxA.fillText(ang.deg.toFixed(3)+'°',TX(Ap)+s*1.5,TY(Ap)-s*1.5); 
+        }
+        
+        function computeA(){
+            if(toolAContent.style.display==='none') return; 
+            
+            cvA.width = cvA.clientWidth;
+            cvA.height = cvA.clientHeight;
+
+            try{
+                const useLen=tabLenA.classList.contains('active');
+                const {A,B,Ap,Bp}=useLen?computeFromLenA():computeFromXYA();
+                const ang=calcA(A,B,Ap,Bp);
+                el('degA').textContent=ang.deg.toFixed(6);
+                el('degSignedA').textContent=ang.degSigned.toFixed(6);
+                el('lenTopA').textContent=ang.lenTop.toFixed(6);
+                fitDrawA(A,B,Ap,Bp,ang);
+            }catch(e){
+                ctxA.clearRect(0,0,cvA.width,cvA.height);
+                ctxA.fillStyle='#f87171';
+                ctxA.font='16px sans-serif';
+                ctxA.fillText(`錯誤: ${e.message}`, 20, 30);
+                el('degA').textContent='—';
+                el('degSignedA').textContent='—';
+                el('lenTopA').textContent='—';
+            }
+        }
+        
+        el('calcBtnA').onclick=computeA; 
+        el('swapBtnA').onclick=()=>{
+            if(tabLenA.classList.contains('active')){
+                [el('hL').value,el('hR').value]=[el('hR').value,el('hL').value];
+            }else{
+                [el('hL2').value,el('hR2').value]=[el('hR2').value,el('hL2').value];
+            }
+            computeA();
+        };
+        el('resetBtnA').onclick=computeA; 
+        document.querySelectorAll('#toolAContent input').forEach(i=>i.addEventListener('input',computeA));
+
+
+        // ====================================================================
+        // --- 工具 B: 盤數計算 (工具 2) 邏輯 ---
+        // ====================================================================
+
+        function computeB(){
+            if(toolBContent.style.display==='none') return;
+
+            const rawTotalCount = el('totalCount').value;
+            const rawTrayCapacity = el('trayCapacity').value;
+            
+            // 驗證輸入為有效整數且符合正負限制
+            const totalCount = parseInt(rawTotalCount);
+            const trayCapacity = parseInt(rawTrayCapacity);
+
+            // 防呆邏輯檢查
+            if (rawTotalCount === '' || rawTrayCapacity === '' || isNaN(totalCount) || isNaN(trayCapacity) ||
+                totalCount < 0 || !Number.isInteger(parseFloat(rawTotalCount)) ||
+                trayCapacity <= 0 || !Number.isInteger(parseFloat(rawTrayCapacity))) 
+            {
+                el('totalTraysB').textContent = el('fullTraysB').textContent = el('remainderB').textContent = el('neededB').textContent = '—';
+                
+                // 顯示錯誤狀態 (例如，將其中一個結果欄位用來顯示錯誤)
+                if (totalCount < 0 || !Number.isInteger(parseFloat(rawTotalCount)) ) {
+                    el('totalTraysB').textContent = '物料數需非負整數';
+                } else if (trayCapacity <= 0 || !Number.isInteger(parseFloat(rawTrayCapacity)) ) {
+                     el('totalTraysB').textContent = '格數需正整數';
+                }
+                
+                return;
+            }
+
+            const totalTrays = Math.ceil(totalCount / trayCapacity); 
+            const fullTrays = Math.floor(totalCount / trayCapacity); 
+            const remainder = totalCount % trayCapacity;
+
+            let needed = 0;
+            if (remainder > 0) {
+                needed = trayCapacity - remainder;
+            }
+            else if (totalCount >= 0 && remainder === 0) { // 包含 0 和滿盤的情況
+                 needed = trayCapacity;
+                 if(totalCount === 0) needed = 0; // 數量為 0 時，需要數為 0
+            }
+
+            el('totalTraysB').textContent = totalTrays;
+            el('fullTraysB').textContent = fullTrays;
+            el('remainderB').textContent = remainder;
+            el('neededB').textContent = needed;
+        }
+
+        function resetInputsB(){
+            el('totalCount').value = '1000';
+            el('trayCapacity').value = '96';
+            computeB();
+        }
+
+        // 優化：強制輸入框只能輸入數字
+        function enforceInteger(e) {
+            const val = e.target.value;
+            e.target.value = val.replace(/[^\d]/g, ''); 
+        }
+
+        const totalCountInput = el('totalCount');
+        const trayCapacityInput = el('trayCapacity');
+
+        totalCountInput.addEventListener('input', enforceInteger);
+        trayCapacityInput.addEventListener('input', enforceInteger);
+        totalCountInput.addEventListener('input', computeB);
+        trayCapacityInput.addEventListener('input', computeB);
+
+        el('calcBtnB').onclick = computeB;
+        el('resetBtnB').onclick = resetInputsB;
+
+
+        // ====================================================================
+        // --- 工具 C: 快速工時計算機 (工具 3) 邏輯 ---
+        // ====================================================================
+
+        const LUNCH_START_MIN = 720;   // 12:00
+        const LUNCH_END_MIN = 780;     // 13:00
+        const DINNER_START_MIN = 1050; // 17:30
+        const DINNER_END_MIN = 1080;   // 18:00
+
+        const DEDUCTION_INTERVALS = [
+            [LUNCH_START_MIN, LUNCH_END_MIN], 
+            [DINNER_START_MIN, DINNER_END_MIN] 
+        ];
+
+        function timeToMinutes(hhmm) {
+            const timeStr = String(hhmm).padStart(4, '0');
+            const h = parseInt(timeStr.slice(0, 2));
+            const m = parseInt(timeStr.slice(2, 4));
+            if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+                return NaN; 
+            }
+            return h * 60 + m;
+        }
+
+        function formatMinutes(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
+        function computeC(){
+            if(toolCContent.style.display==='none') return; 
+
+            el('netMinutesC').textContent = el('netTimeC').textContent = el('grossMinutesC').textContent = el('grossTimeC').textContent = el('deductionC').textContent = '—';
+
+            try {
+                const startHHMM = el('startTimeC').value;
+                const endHHMM = el('endTimeC').value;
+                
+                const startMin = timeToMinutes(startHHMM);
+                const endMin = timeToMinutes(endHHMM);
+                
+                if (isNaN(startMin) || isNaN(endMin)) {
+                     throw new Error('請輸入有效的四位數字時間');
+                }
+                
+                if (startMin >= endMin) {
+                    throw new Error('結束時間必須晚於開始時間');
+                }
+                
+                const grossMinutes = endMin - startMin;
+                let totalDeduction = 0;
+
+                DEDUCTION_INTERVALS.forEach(([dStart, dEnd]) => {
+                    if (startMin < dEnd && endMin > dStart) {
+                        const overlapStart = Math.max(startMin, dStart);
+                        const overlapEnd = Math.min(endMin, dEnd);
+                        totalDeduction += (overlapEnd - overlapStart);
+                    }
+                });
+
+                const netMinutes = grossMinutes - totalDeduction;
+                
+                el('grossTimeC').textContent = formatMinutes(grossMinutes);
+                el('netMinutesC').textContent = netMinutes;
+                el('netTimeC').textContent = formatMinutes(netMinutes);
+                el('grossMinutesC').textContent = grossMinutes;
+                el('deductionC').textContent = totalDeduction;
+
+            } catch(e) {
+                el('grossTimeC').textContent = '錯誤：' + e.message; 
+                el('deductionC').textContent = '—';
+                el('netMinutesC').textContent = '—';
+                el('netTimeC').textContent = '—';
+            }
+        }
+
+        function resetInputsC(){
+            el('startTimeC').value = '0855';
+            el('endTimeC').value = '1810';
+            computeC(); 
+        }
+
+        el('calcBtnC').onclick=computeC;
+        el('resetBtnC').onclick=resetInputsC;
+        el('startTimeC').addEventListener('input', computeC);
+        el('endTimeC').addEventListener('input', computeC);
+
+
+        // ====================================================================
+        // --- 工具 D: 加班費試算 (工具 4) 邏輯 ---
+        // ====================================================================
+        
+        // 勞保/健保級距資訊 (使用 2024 年基本工資調漲後的數據)
+        const GRADE_TABLE=[28590,28800,30300,31800,33300,34800,36300,38200,40100,42000,43900,45800];
+        // 假設 2025 年費率 (勞保12.5%*個人20%, 健保5.17%*個人30%) - 僅供試算
+        const LABOR_RATE=0.125,LABOR_EMP=0.20,NHI_RATE=0.0517,NHI_EMP=0.30;
+        
+        function money(n){return new Intl.NumberFormat('zh-TW').format(Math.round(n||0));}
+        function pickInsured(s){for(const g of GRADE_TABLE){if(g>=s)return g;}return GRADE_TABLE[GRADE_TABLE.length-1];}
+        function calcLabor(i){return Math.round(i*LABOR_RATE*LABOR_EMP);}
+        function calcNhi(i){return Math.round(i*NHI_RATE*NHI_EMP);}
+        function daysInMonth(y,m){
+            if(!y || !m) return 30; 
+            return new Date(y,m,0).getDate();
+        }
+        function weekend(y,m,d){
+            const date = new Date(y, m-1, d);
+            if (isNaN(date)) return '平日'; 
+            let w=date.getDay();
+            return (w==0||w==6)?'休息日':'平日';
+        }
+        
+        const stateD={
+            salary:35000,monthHours:240,meal:60,other:0,
+            r1:1.33,r2:1.66,rh:2.0,
+            year:new Date().getFullYear(),
+            month:new Date().getMonth()+1,
+            manualInsured:0,
+            rows:[]
+        };
+
+        el('year').value = stateD.year;
+        el('month').value = stateD.month;
+
+        function rebuildRowsD(){
+            stateD.year = +el('year').value;
+            stateD.month = +el('month').value;
+            
+            let n=daysInMonth(stateD.year,stateD.month);
+            
+            const newRows = [...Array(n)].map((_,i) => {
+                const day = i + 1;
+                const existingRow = stateD.rows.find(r => r.day === day);
+                return {
+                    day: day,
+                    type: existingRow ? existingRow.type : weekend(stateD.year, stateD.month, day),
+                    hours: existingRow ? existingRow.hours : ''
+                };
+            });
+
+            stateD.rows = newRows;
+            renderD(); 
+        }
+
+        function hourlyD(){return stateD.salary/stateD.monthHours;}
+
+        function calcRowD(r){
+            let h=Number(r.hours)||0;
+            if(h<=0) return{ot:0,meal:0,sub:0};
+
+            let hourlyRate = hourlyD();
+
+            if(r.type==='國定假日' || r.type==='休息日'){
+                let ot=h*hourlyRate*stateD.rh;
+                let m=h>2?stateD.meal:0;
+                return{ot:Math.round(ot),meal:m,sub:Math.round(ot)+m};
+            }
+            
+            let first=Math.min(h,2)*hourlyRate*stateD.r1;
+            let rest=Math.max(h-2,0)*hourlyRate*stateD.r2;
+            let ot=first+rest;
+            let m=h>2?stateD.meal:0;
+            return{ot:Math.round(ot),meal:m,sub:Math.round(ot)+m};
+        }
+
+        function updateD(){
+            if(toolDContent.style.display==='none') return; 
+
+            stateD.salary = +el('salary').value || 0;
+            stateD.monthHours = +el('monthHours').value || 0;
+            stateD.meal = +el('meal').value || 0;
+            stateD.other = +el('other').value || 0;
+            stateD.r1 = +el('r1').value || 0;
+            stateD.r2 = +el('r2').value || 0;
+            stateD.rh = +el('rh').value || 0;
+            stateD.manualInsured = +el('manualInsured').value || 0;
+            
+            const insuredAuto = pickInsured(stateD.salary);
+            const insured = stateD.manualInsured > 0 ? stateD.manualInsured : insuredAuto;
+            
+            const labor=calcLabor(insured);
+            const nhi=calcNhi(insured);
+            const insAll=labor+nhi;
+
+            el('insuredAuto').textContent = money(insuredAuto);
+            el('insured').textContent = money(insured);
+            el('labor').textContent=money(labor);
+            el('nhi').textContent=money(nhi);
+            el('insCombined').textContent=money(insAll);
+            el('hourly').textContent=money(hourlyD());
+
+            el('ym').textContent=`${stateD.year}/${stateD.month}`;
+            const tbody=el('otBody');
+            let sumOT=0,sumMeal=0,sumSub=0;
+            
+            stateD.rows.forEach((r, idx)=>{
+                const c=calcRowD(r);
+                sumOT+=c.ot;
+                sumMeal+=c.meal;
+                sumSub+=c.sub;
+
+                const tr=tbody.children[idx];
+                if(tr){
+                    tr.children[3].textContent = money(c.ot); 
+                    tr.children[4].textContent = money(c.meal); 
+                    tr.children[5].textContent = money(c.sub); 
+                }
+            });
+
+            el('sumOTPay').textContent=money(sumOT);
+            el('sumMeal').textContent=money(sumMeal);
+            el('sumSub').textContent=money(sumSub);
+            el('sumSubtotal').textContent=money(sumSub);
+            
+            const gross=stateD.salary+sumSub;
+            const net=gross-insAll-stateD.other;
+            
+            el('gross').textContent=money(gross);
+            el('insAll').textContent=money(insAll);
+            el('otherAmount').textContent=money(stateD.other);
+            el('net').textContent=money(net);
+        }
+
+        const debounceUpdateD = debounce(updateD, 300); 
+
+        function renderD(){
+            if(toolDContent.style.display==='none') return; 
+
+            const tbody=el('otBody');
+            tbody.innerHTML=''; 
+
+            stateD.rows.forEach((r, idx)=>{
+                const tr=document.createElement('tr');
+                tr.innerHTML=`
+                    <td>${stateD.year}-${String(stateD.month).padStart(2,'0')}-${String(r.day).padStart(2,'0')}</td>
+                    <td>
+                        <select class="ot-select">
+                            <option>平日</option>
+                            <option>休息日</option>
+                            <option>國定假日</option>
+                        </select>
+                    </td>
+                    <td><input type=number class="ot-hours-input" step=0.5 value=\"${r.hours}\"></td>
+                    <td class=right>0</td> 
+                    <td class=right>0</td> 
+                    <td class=right>0</td> 
+                `;
+                
+                const sel=tr.querySelector('select');
+                sel.value=r.type;
+                sel.onchange=e=>{
+                    r.type=e.target.value;
+                    updateD(); 
+                };
+                
+                const inputEl = tr.querySelector('input');
+                inputEl.addEventListener('input', (e) => {
+                    r.hours = e.target.value; 
+                    debounceUpdateD(); 
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            updateD(); 
+        }
+
+        // --- 新增快速填寫平日邏輯 ---
+        el('fillWeekday').onclick = () => {
+            const quickDays = parseInt(el('quickDays').value) || 0;
+            let filledCount = 0;
+            
+            if (quickDays <= 0) return;
+
+            // 找到前 N 個類型為 '平日' 且時數為空或 0 的日期
+            stateD.rows.forEach(r => {
+                if (filledCount < quickDays && r.type === '平日' && (r.hours === '' || parseFloat(r.hours) === 0)) {
+                    r.hours = '3'; // 預設 3 小時
+                    filledCount++;
+                }
+            });
+            
+            renderD();
+        };
+
+        // --- 快速填寫休息日邏輯 (原週末8h) ---
+        el('fillWeekend').onclick = () => {
+            stateD.rows.forEach(r => {
+                if (r.type === '休息日' && (r.hours === '' || parseFloat(r.hours) === 0)) {
+                    r.hours = '8'; 
+                }
+            });
+            renderD(); 
+        };
+        
+        // --- 清空時數邏輯 ---
+        el('clearHours').onclick=()=>{
+            stateD.rows.forEach(r=>r.hours='');
+            renderD(); 
+        };
+
+
+        function bindD(){
+            ['salary','monthHours','meal','other','r1','r2','rh','manualInsured'].forEach(id=>el(id).oninput=updateD);
+            
+            ['year','month'].forEach(id=>el(id).oninput=rebuildRowsD);
+            
+            // 快速填入平日的天數輸入框也要綁定 input，但只需要更新 state 不需要重新 render
+            el('quickDays').oninput = () => {}; 
+        }
+
+        // --- 全域初始化 ---
+        (function init(){
+            window.addEventListener('resize', () => { 
+                computeA(); 
+            });
+            
+            bindD(); 
+            rebuildRowsD(); 
+            computeB(); 
+            computeC(); 
+
+            switchMainTab('A');
+        })();
+    })();
+</script>
+</body>
+</html>
