@@ -258,8 +258,20 @@ function drawE(){
     const path=(p,color,width=1)=>{x.strokeStyle=color;x.lineWidth=width;x.beginPath();p.forEach((q,i)=>i?x.lineTo(X(q.x),Y(q.y)):x.moveTo(X(q.x),Y(q.y)));x.stroke()};
     dxfState.open.forEach((o,i)=>path(o.p,(dxfState.problems||[]).some(p=>p.pathIndex===i)?'#f87171':'#64748b',1.5));
     dxfState.closed.forEach(o=>path([...o.p,o.p[0]],'#22d3ee',1.8));
-    const previewMax=12000,step=Math.max(1,Math.ceil(dxfState.fills.length/previewMax));
-    for(let i=0;i<dxfState.fills.length;i+=step)path(dxfState.fills[i],'#4ade80',1);
+    // 預覽不再抽樣，避免尺寸變大、填充段數超過門檻後看起來像漏線。
+    // 改採分批建立 Path，一次 stroke 多條線，兼顧完整顯示與效能。
+    const fills=dxfState.fills||[],batchSize=20000;
+    x.strokeStyle='#4ade80';x.lineWidth=1;
+    for(let start=0;start<fills.length;start+=batchSize){
+        const end=Math.min(start+batchSize,fills.length);
+        x.beginPath();
+        for(let i=start;i<end;i++){
+            const q=fills[i];
+            x.moveTo(X(q[0].x),Y(q[0].y));
+            x.lineTo(X(q[1].x),Y(q[1].y));
+        }
+        x.stroke();
+    }
     (dxfState.problems||[]).forEach((p,i)=>{
         const px=X(p.point.x),py=Y(p.point.y),sel=i===dxfView.selectedProblem;
         x.beginPath();x.arc(px,py,sel?9:7,0,Math.PI*2);x.fillStyle=sel?'#facc15':'#ef4444';x.fill();x.strokeStyle='#fff';x.lineWidth=1.5;x.stroke();
