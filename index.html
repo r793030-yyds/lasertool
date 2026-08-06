@@ -1,950 +1,288 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>雷雕室計算工具箱</title>
-    <style>
-        /* 共用變數定義 (暗黑/白色卡片混合風格) */
-        :root{
-            --bg:#0b1220;
-            --card:#0f172a;
-            --muted:#94a3b8;
-            --text:#e2e8f0;
-            --line:#1e293b;
-            --accent:#22d3ee;
-            --ok:#4ade80;
-            --warn:#f59e0b;
-            --bg-light: #f8fafc;
-            --card-light: #fff;
-            --text-dark: #0f172a;
-            --muted-dark: #475569;
-            --line-light: #e2e8f0;
-        }
-        
-        /* 基本樣式 */
-        *{box-sizing:border-box} 
-        body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,"Noto Sans TC",Segoe UI,Arial,sans-serif}
-        .wrap{max-width:1200px;margin:0 auto;padding:16px}
-        h1{font-size:24px;margin:0 0 12px;font-weight:800;border-bottom:1px solid var(--line);padding-bottom:8px;}
-        h2{font-size:20px;margin:0 0 12px;font-weight:700;}
-        p.desc{margin:0 0 16px;color:var(--muted);font-size:14px;}
-        
-        /* Tab 樣式 (主要導航) */
-        .main-tabs{display:flex;gap:10px;margin-bottom:16px;border-bottom:1px solid var(--line); overflow-x: auto; padding-bottom: 5px;}
-        .main-tab{flex-shrink: 0; padding:12px 18px;border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;background:#0b1020;cursor:pointer;font-size:16px;font-weight:600;}
-        .main-tab.active{background:var(--card);border-color:#294059;color:var(--accent);}
-        
-        /* 內容區塊 */
-        .tool-content{padding:0;}
-        .grid{display:block;gap:20px} 
-        .card{border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px;}
-        .tool-A .card {background: var(--card);}
-        .tool-B .card {background: var(--card);} 
-        .tool-C .card {background: var(--card);} 
-        .tool-D .card {background: var(--card-light); color: var(--text-dark); border-color: var(--line-light);} 
-
-        /* 子 Tab 樣式 (工具A內) */
-        .sub-tabs{display:flex;gap:10px;margin-bottom:10px}
-        .sub-tab{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0b1020;cursor:pointer;font-size:14px;}
-        .sub-tab.active{background:#102034;border-color:#294059}
-
-        /* 表單元件 */
-        label{display:block;margin:0 0 6px;color:var(--muted);font-size:14px;}
-        .tool-D label {color: var(--muted-dark);} 
-
-        /* 通用輸入框 */
-        input[type=number], input[type=text], select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:16px;}
-        
-        /* 工具 B: 置中排版優化 */
-        .tool-B .card {
-            text-align: center; /* 內容置中 */
-        }
-        .tool-B .row {
-            max-width: 400px; /* 限制輸入框區域寬度並置中 */
-            margin: 0 auto 10px auto; 
-            display: block; /* 確保在小螢幕上也是滿版 */
-        }
-        .tool-B .row > div {
-            margin-bottom: 15px; 
-            text-align: left; /* 輸入框內的標籤左對齊 */
-        }
-        .tool-B .btns {
-            max-width: 400px;
-            margin: 12px auto; /* 按鈕置中 */
-        }
-        
-        /* 工具4 (原工具3) 輸入欄位顏色覆寫 */
-        .tool-D input, .tool-D select {
-            background: var(--bg-light); 
-            color: var(--text-dark); 
-            border-color: var(--line-light);
-            text-align: right;
-        }
-        /* 優化表格內的輸入框樣式 */
-        .tool-D table input[type=number] {
-            width: 60px; 
-            padding: 6px 4px; 
-            text-align: right;
-        }
-        .tool-D td {
-            vertical-align: middle; 
-        }
-        /* 工具 D: 快速填寫區域 */
-        .tool-D .quick-fill {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-            align-items: flex-end;
-            flex-wrap: wrap;
-        }
-        .tool-D .quick-fill > div {
-            flex: 1 1 120px;
-        }
-        .tool-D .quick-fill button {
-            flex: 0 0 auto;
-            min-width: 120px;
-            padding: 10px 12px;
-            font-size: 14px;
-        }
-
-        .row, .row3{display:block;gap:10px;}
-        .row > div, .row3 > div {margin-bottom: 10px;}
-        
-        /* 按鈕樣式 */
-        .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-        button{flex-grow:1;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:#0b1020;color:var(--text);cursor:pointer;font-size:16px;}
-        button.primary{background:var(--accent);color:#001018;border-color:transparent;font-weight:700}
-        
-        /* 加班費工具的按鈕 (工具4) */
-        .tool-D .btn{border:1px solid var(--line-light);background:var(--card-light);padding:6px 10px;border-radius:10px;cursor:pointer; color: var(--text-dark);}
-        .tool-D .btn:hover{background:#f8fafc}
-        
-        /* 結果顯示 */
-        .result{display:grid;grid-template-columns:1fr;gap:10px;margin-top:16px}
-        .metric{background:#0b1020;border:1px dashed #1f2a3a;border-radius:12px;padding:12px; text-align: center;}
-        .metric b{font-size:24px;display:block;margin-top:4px;}
-        /* 工具B, C 樣式調整 */
-        .tool-C .metric { background:#0d1825; border-color:#203040;}
-        .tool-C .metric.main { background:var(--accent); color: #001018; border-color: transparent;}
-        
-        /* 工具 B: 結果樣式統一為 accent */
-        .tool-B .metric { 
-            background:var(--accent); 
-            color: #001018; 
-            border-color: transparent;
-            font-weight: 600; /* 加粗文字 */
-        }
-        .tool-B .metric div {
-            font-weight: normal; /* 標題文字不加粗 */
-            color: #001018;
-        }
-
-        
-        /* 繪圖區 (工具A專用) */
-        canvas{width:100%;min-height:300px;background:#07101f;border:1px solid var(--line);border-radius:14px;display:block;}
-        .hint{font-size:14px;color:var(--muted);margin-top:8px;}
-        .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#0d2236;color:#7dd3fc;border:1px solid #1f3a55;margin-left:6px;font-size:12px;}
-        
-        /* 加班費試算表格樣式 (工具4) */
-        .tool-D table{width:100%;border-collapse:collapse; display: block; overflow-x: auto; color: var(--text-dark);}
-        .tool-D th, .tool-D td{padding:6px;border-bottom:1px solid var(--line-light);font-size:13px; white-space: nowrap;}
-        .tool-D th{font-size:12px;color:var(--muted-dark);background:#f1f5f9;text-align:left}
-        .tool-D .right{text-align:right}
-        .tool-D .summary td:first-child{color:var(--muted-dark)}
-        .tool-D .total{font-weight:800;font-size:18px}
-        .tool-D .muted{font-size:12px;color:var(--muted-dark);background:#f1f5f9;border-radius:10px;padding:8px;margin-top:8px}
-        .ot-select{ width: 100px; }
-
-        /* ----------------------------------------------------- */
-        /* 響應式佈局：在平板或桌機上的優化 (900px以上) */
-        @media (min-width: 900px) {
-            .wrap{padding:24px}
-            .grid{display:grid;gap:20px;}
-            .tool-A .grid {grid-template-columns: 1.2fr 0.8fr;} 
-            /* 工具B 調整為單欄滿版 */
-            .tool-B .grid {grid-template-columns: 1fr;} 
-            .tool-C .grid {grid-template-columns: 1fr 1fr;} 
-            .tool-C .grid > :first-child { grid-column: span 2;} 
-            .tool-D .grid-3 {grid-template-columns: repeat(3, 1fr);} 
-            .card{margin-bottom:0;}
-            .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-            .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
-            .row > div, .row3 > div {margin-bottom: 0;}
-            .result{grid-template-columns:repeat(4,minmax(0,1fr));} 
-            .tool-B .result {max-width: 600px; margin: 16px auto;} /* 工具B的結果置中 */
-            .tool-C .result{grid-template-columns:repeat(5,minmax(0,1fr));} 
-            .tool-A canvas{height:520px;}
-            .tool-D .quick-fill {
-                 flex-wrap: nowrap;
-            }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>雷雕室計算工具箱</title>
+<script src="https://cdn.jsdelivr.net/npm/dxf-parser@1.1.2/dist/dxf-parser.min.js"></script>
+<style>
+:root{--bg:#0b1220;--card:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--line:#1e293b;--accent:#22d3ee;--ok:#4ade80;--warn:#f59e0b;--bad:#f87171;--light:#fff;--dark:#0f172a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,"Noto Sans TC",sans-serif}.wrap{max-width:1200px;margin:auto;padding:16px}h1{font-size:24px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}h2{font-size:20px;margin:0 0 10px}.desc,.hint{color:var(--muted);font-size:14px}.main-tabs{display:flex;gap:8px;overflow-x:auto;border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:16px}.main-tab{white-space:nowrap;padding:11px 14px;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;background:#0b1020;cursor:pointer;font-weight:650}.main-tab.active{background:var(--card);color:var(--accent);border-color:#294059}.tool{display:none}.tool.active{display:block}.grid{display:grid;gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}.row,.row3{display:grid;gap:10px}.row{grid-template-columns:1fr}.row3{grid-template-columns:1fr}label{display:block;color:var(--muted);font-size:14px;margin:0 0 5px}input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#0b1020;color:var(--text);font-size:16px}.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}button{padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:#0b1020;color:var(--text);cursor:pointer;font-size:15px}button.primary{background:var(--accent);color:#001018;border-color:transparent;font-weight:750}.result{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.metric{background:#0b1020;border:1px dashed #263447;border-radius:12px;padding:11px;text-align:center}.metric b{display:block;font-size:21px;margin-top:3px}.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#0d2236;color:#7dd3fc;border:1px solid #1f3a55;font-size:12px}canvas{width:100%;height:430px;background:#07101f;border:1px solid var(--line);border-radius:14px;display:block}.status{margin-top:10px;padding:10px;border-radius:10px;background:#0b1020;border:1px solid var(--line);font-size:14px;color:var(--muted)}.status.ok{color:#bbf7d0;border-color:#166534}.status.bad{color:#fecaca;border-color:#7f1d1d}.list{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px}.list-row{display:flex;justify-content:space-between;gap:12px;padding:8px 10px;border-bottom:1px solid var(--line);font-size:14px}.list-row:last-child{border-bottom:0}.list-row.problem{cursor:pointer;color:#fecaca}.list-row.problem:hover,.list-row.problem.active{background:#3f1218}.problem-count{color:#fca5a5;font-weight:700}.problem-note{margin-top:8px;color:#fca5a5;font-size:13px}.small{font-size:12px;color:var(--muted)}table{width:100%;border-collapse:collapse}th,td{padding:7px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.light{background:#fff;color:#0f172a}.light input,.light select{background:#f8fafc;color:#0f172a;border-color:#e2e8f0}.light .metric{background:#f8fafc;border-color:#cbd5e1}.light table th,.light table td{border-color:#e2e8f0}.quick{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.quick>*{flex:1 1 120px}.canvas-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.canvas-tools button{padding:9px 12px}.zoom-pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#0b1020;color:var(--muted);font-size:13px}.canvas-wrap{position:relative}.canvas-wrap canvas{touch-action:none;cursor:grab}.canvas-wrap canvas.dragging{cursor:grabbing}
+@media(min-width:900px){.wrap{padding:24px}.two{grid-template-columns:1.15fr .85fr}.row{grid-template-columns:1fr 1fr}.row3{grid-template-columns:1fr 1fr 1fr}.result{grid-template-columns:repeat(4,minmax(0,1fr))}.dxf-results{grid-template-columns:repeat(5,minmax(0,1fr))}}
+</style>
 </head>
-<body>
-    <div class="wrap">
-        <h1>雷雕室計算工具箱</h1>
+<body><div class="wrap">
+<h1>雷雕室計算工具箱</h1>
+<div class="main-tabs" id="tabs">
+<div class="main-tab active" data-tool="A">1. 兩線段求角度</div>
+<div class="main-tab" data-tool="B">2. 盤數計算</div>
+<div class="main-tab" data-tool="C">3. 快速工時計算</div>
+<div class="main-tab" data-tool="D">4. 加班費試算</div>
+<div class="main-tab" data-tool="E">5. DXF 填充與時間估算</div>
+</div>
 
-        <div class="main-tabs">
-            <div id="mainTabA" class="main-tab active">1. 兩線段求角度</div>
-            <div id="mainTabB" class="main-tab">2. 盤數計算</div>
-            <div id="mainTabC" class="main-tab">3. 快速工時計算</div>
-            <div id="mainTabD" class="main-tab">4. 加班費試算</div>
-        </div>
+<section id="toolA" class="tool active">
+<h2>兩線段角度計算 <span class="badge">幾何設計</span></h2>
+<p class="desc">輸入線長及左右高度，計算上緣連線的傾斜角度。</p>
+<div class="grid two"><div class="card">
+<div class="row3"><div><label>原始線段長度 L</label><input id="aL" type="number" value="100"></div><div><label>左端高度</label><input id="ahL" type="number" value="10"></div><div><label>右端高度</label><input id="ahR" type="number" value="25"></div></div>
+<div class="btns"><button class="primary" id="aCalc">計算與繪製</button><button id="aSwap">交換左右高度</button></div>
+<div class="result"><div class="metric">夾角<b id="aDeg">—</b></div><div class="metric">帶正負角度<b id="aSigned">—</b></div><div class="metric">上緣長度<b id="aTop">—</b></div></div>
+</div><div class="card"><canvas id="aCanvas"></canvas></div></div>
+</section>
 
-        <div id="toolAContent" class="tool-content tool-A">
-            <h2>兩線段角度計算 <span class="badge">幾何設計</span></h2>
-            <p class="desc">輸入「<b>原始線段長度 L</b>」與「<b>左右高度 h<sub>L</sub>/h<sub>R</sub></b>」，計算連線斜率產生的夾角。</p>
-            <div class="grid">
-                <div class="card">
-                    <div class="sub-tabs">
-                        <div id="tabLenA" class="sub-tab active">線長 + 左右高度</div>
-                        <div id="tabXYA" class="sub-tab">座標 + 高度</div>
-                    </div>
+<section id="toolB" class="tool">
+<h2>盤數計算機 <span class="badge">庫存管理</span></h2>
+<div class="card"><div class="row"><div><label>總物料數量</label><input id="bTotal" type="number" value="123"></div><div><label>每盤格數</label><input id="bCap" type="number" value="12"></div></div><div class="btns"><button class="primary" id="bCalc">重新計算</button></div><div class="result"><div class="metric">所需總盤數<b id="bTrays">—</b></div><div class="metric">已滿盤數<b id="bFull">—</b></div><div class="metric">尾數盤數量<b id="bRemain">—</b></div><div class="metric">湊滿下一盤還差<b id="bNeed">—</b></div></div></div>
+</section>
 
-                    <div id="paneLenA">
-                        <div class="row3">
-                            <div><label for="L">原始線段長度 L</label><input id="L" type="number" step="any" value="100"></div>
-                            <div><label for="hL">左端高度 h<sub>L</sub></label><input id="hL" type="number" step="any" value="10"></div>
-                            <div><label for="hR">右端高度 h<sub>R</sub></label><input id="hR" type="number" step="any" value="25"></div>
-                        </div>
-                    </div>
+<section id="toolC" class="tool">
+<h2>快速工時計算機 <span class="badge">自動扣休息</span></h2>
+<div class="card"><div class="row"><div><label>開始時間 HHMM</label><input id="cStart" value="0855"></div><div><label>結束時間 HHMM</label><input id="cEnd" value="1810"></div></div><div class="btns"><button class="primary" id="cCalc">計算工時</button></div><div class="result"><div class="metric">輸入工時<b id="cGross">—</b></div><div class="metric">扣除分鐘<b id="cDeduct">—</b></div><div class="metric">淨工時分鐘<b id="cNetMin">—</b></div><div class="metric">淨工時<b id="cNet">—</b></div></div></div>
+</section>
 
-                    <div id="paneXYA" style="display:none">
-                        <div class="row"><div><label for="x1">起點 A.x</label><input id="x1" type="number" step="any" value="0"></div><div><label for="y1">A.y</label><input id="y1" type="number" step="any" value="0"></div></div>
-                        <div class="row"><div><label for="x2">終點 B.x</label><input id="x2" type="number" step="any" value="100"></div><div><label for="y2">B.y</label><input id="y2" type="number" step="any" value="0"></div></div>
-                        <div class="row"><div><label for="hL2">左端高度 h<sub>L</sub></label><input id="hL2" type="number" step="any" value="10"></div><div><label for="hR2">右端高度 h<sub>R</sub></label><input id="hR2" type="number" step="any" value="25"></div></div>
-                    </div>
+<section id="toolD" class="tool">
+<h2>加班費試算 <span class="badge">簡化版</span></h2>
+<div class="card light"><div class="row3"><div><label>底薪</label><input id="dSalary" type="number" value="35000"></div><div><label>月工時</label><input id="dMonthHours" type="number" value="240"></div><div><label>平日加班時數</label><input id="dOtHours" type="number" value="30"></div></div><div class="row3"><div><label>前 2 小時倍率</label><input id="dR1" type="number" value="1.33" step="0.01"></div><div><label>2 小時後倍率</label><input id="dR2" type="number" value="1.66" step="0.01"></div><div><label>每日加班時數</label><input id="dPerDay" type="number" value="3" step="0.5"></div></div><div class="btns"><button class="primary" id="dCalc">試算</button></div><div class="result"><div class="metric">時薪<b id="dHourly">—</b></div><div class="metric">估算加班天數<b id="dDays">—</b></div><div class="metric">加班費<b id="dPay">—</b></div><div class="metric">底薪＋加班<b id="dGross">—</b></div></div></div>
+</section>
 
-                    <div class="btns">
-                        <button class="primary" id="calcBtnA">計算與繪製</button>
-                        <button id="swapBtnA">交換左右高度</button>
-                        <button id="resetBtnA">重設視圖</button>
-                    </div>
-
-                    <div class="result">
-                        <div class="metric"><div>夾角 &theta; (度)</div><b id="degA">—</b></div>
-                        <div class="metric"><div>帶正負號 &theta;</div><b id="degSignedA">—</b></div>
-                        <div class="metric"><div>A'B' 連線長度</div><b id="lenTopA">—</b></div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <canvas id="cvA" width="800" height="300"></canvas>
-                    <p class="hint">灰：原始線段 AB。綠：高度。藍：上緣連線。圓弧=角度。</p>
-                </div>
-            </div>
-        </div>
-        
-        <div id="toolBContent" class="tool-content tool-B" style="display:none;">
-            <h2>盤數計算機 <span class="badge">庫存管理</span></h2>
-            <p class="desc">輸入總數量和每個盤的格數，自動計算盤點結果。</p>
-            <div class="grid">
-                <div class="card">
-                    <div class="row">
-                        <div>
-                            <label for="totalCount">總物料數量</label>
-                            <input id="totalCount" type="number" pattern="[0-9]*" inputmode="numeric" value="123">
-                        </div>
-                        <div>
-                            <label for="trayCapacity">每盤格數</label>
-                            <input id="trayCapacity" type="number" pattern="[0-9]*" inputmode="numeric" value="12">
-                        </div>
-                    </div>
-
-                    <div class="btns">
-                        <button class="primary" id="calcBtnB">重新計算</button>
-                        <button id="resetBtnB">重設數值</button>
-                    </div>
-
-                    <div class="result">
-                        <div class="metric"><div>所需總盤數</div><b id="totalTraysB">—</b></div>
-                        <div class="metric"><div>已滿盤數</div><b id="fullTraysB">—</b></div>
-                        <div class="metric"><div>尾數盤數量</div><b id="remainderB">—</b></div>
-                        <div class="metric"><div>湊滿下一盤還差</div><b id="neededB">—</b></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <div id="toolCContent" class="tool-content tool-C" style="display:none;">
-            <h2>快速工時計算機 <span class="badge">自動扣除休息時段</span></h2>
-            <p class="desc">輸入四位數字時間 (HHMM)，自動計算總工時。預設扣除兩個休息時段的重疊時間：**午休 (12:00~13:00)** 和 **晚休 (17:30~18:00)**。</p>
-            <div class="grid">
-                <div class="card">
-                    <div class="row">
-                        <div>
-                            <label for="startTimeC">開始時間 (HHMM)</label>
-                            <input id="startTimeC" type="number" placeholder="例如：0855" value="0855">
-                        </div>
-                        <div>
-                            <label for="endTimeC">結束時間 (HHMM)</label>
-                            <input id="endTimeC" type="number" placeholder="例如：1810" value="1810">
-                        </div>
-                    </div>
-
-                    <div class="row3" style="margin-top:10px;">
-                        <div>
-                            <label>午休區間</label>
-                            <input type="text" value="1200 ~ 1300" disabled style="text-align:center;">
-                        </div>
-                        <div>
-                            <label>晚休區間</label>
-                            <input type="text" value="1730 ~ 1800" disabled style="text-align:center;">
-                        </div>
-                        <div>
-                            <label>總休息時數</label>
-                            <input type="text" value="90 分鐘" disabled style="text-align:center;">
-                        </div>
-                    </div>
-
-                    <div class="btns">
-                        <button class="primary" id="calcBtnC">計算工時</button>
-                        <button id="resetBtnC">清除輸入</button>
-                    </div>
-
-                    <div class="result">
-                        <div class="metric"><div>輸入工時 (時:分)</div><b id="grossTimeC">—</b></div>
-                        <div class="metric"><div>總時差 (分鐘)</div><b id="grossMinutesC">—</b></div>
-                        <div class="metric"><div>總扣除 (分鐘)</div><b id="deductionC">—</b></div>
-                        <div class="metric main"><div>淨工時 (分鐘)</div><b id="netMinutesC">—</b></div>
-                        <div class="metric main"><div>淨工時 (時:分)</div><b id="netTimeC">—</b></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="toolDContent" class="tool-content tool-D" style="display:none;">
-            <h2>加班費試算 <span class="badge">財務與人資</span></h2>
-
-            <div class="grid grid-3">
-                <div class="card">
-                    <div style="font-weight:600;margin-bottom:8px">薪資與工時</div>
-                    <div class="row"><label>底薪</label><input id="salary" type="number" value="35000" /></div>
-                    <div class="row"><label>每月工時</label><input id="monthHours" type="number" value="240" /></div>
-                    <div class="row"><label>年份</label><input id="year" type="number" /></div>
-                    <div class="row"><label>月份</label><input id="month" type="number" min="1" max="12" /></div>
-                    <div class="row"><label>誤餐費</label><input id="meal" type="number" value="60" /></div>
-                    <div class="row"><label>其他扣款</label><input id="other" type="number" value="0" /></div>
-                    <div class="muted">時薪：<b id="hourly">0</b></div>
-                </div>
-
-                <div class="card">
-                    <div style="font-weight:600;margin-bottom:8px">加班倍率</div>
-                    <div class="row"><label>平日前 2 小時</label><input id="r1" type="number" step="0.01" value="1.33" /></div>
-                    <div class="row"><label>平日 2 小時後</label><input id="r2" type="number" step="0.01" value="1.66" /></div>
-                    <div class="row"><label>休息日/國定假日</label><input id="rh" type="number" step="0.01" value="2.0" /></div>
-                </div>
-
-                <div class="card">
-                    <div style="font-weight:600;margin-bottom:8px">勞健保 (個人自付)</div>
-                    <div class="row">
-                        <label for="manualInsured">手動級距金額 (Override)</label>
-                        <input id="manualInsured" type="number" placeholder="留空則自動計算" />
-                    </div>
-                    <div>自動計算投保級距：<b id="insuredAuto"></b></div>
-                    <div style="margin-top:8px">實際採用級距：<b id="insured"></b></div>
-                    <div>勞保（個人）：<span id="labor"></span></div>
-                    <div>健保（個人）：<span id="nhi"></span></div>
-                    <div>合計扣款：<b id="insCombined"></b></div>
-                </div>
-            </div>
-
-
-            <div class="card" style="margin-top:16px">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div style="font-weight:600">加班明細（<span id="ym"></span>）</div>
-                </div>
-                
-                <div class="quick-fill">
-                    <div>
-                        <label for="quickDays">平日加班天數 (填3h)</label>
-                        <input id="quickDays" type="number" min="0" value="0" style="text-align:left;"/>
-                    </div>
-                    <button class="primary btn" id="fillWeekday">快速填入平日 (3h)</button>
-                    <button class="btn" id="fillWeekend">快速填入休息日 (8h)</button>
-                    <button class="btn" id="clearHours">清空時數</button>
-                </div>
-
-                <table>
-                    <thead>
-                        <tr><th>日期</th><th>類別</th><th>時數</th><th class="right">加班費</th><th class="right">誤餐</th><th class="right">小計</th></tr>
-                    </thead>
-                    <tbody id="otBody"></tbody>
-                    <tfoot><tr><td colspan="3">合計</td><td class="right" id="sumOTPay">0</td><td class="right" id="sumMeal">0</td><td class="right" id="sumSub">0</td></tr></tfoot>
-                </table>
-            </div>
-
-
-            <div class="card" style="margin-top:16px">
-                <table class="summary">
-                    <tr><td>加班與誤餐合計</td><td class="right" id="sumSubtotal">0</td></tr>
-                    <tr><td>應發（底薪＋加班）</td><td class="right" id="gross">0</td></tr>
-                    <tr><td>勞健保合計扣款</td><td class="right" id="insAll">0</td></tr>
-                    <tr><td>其他扣款</td><td class="right" id="otherAmount">0</td></tr>
-                    <tr><td><b>實領試算</b></td><td class="right total" id="net">0</td></tr>
-                </table>
-            </div>
-        </div>
-    </div>
-
-
+<section id="toolE" class="tool">
+<h2>DXF 封閉曲線填充與時間估算 <span class="badge">雷雕路徑</span></h2>
+<p class="desc">支援 LWPOLYLINE、POLYLINE、CIRCLE、ELLIPSE 與封閉 SPLINE 的近似預覽。填充採掃描線法，時間為估算值。</p>
+<div class="grid two">
+<div class="card">
+<div><label>選擇 DXF 檔</label><input id="eFile" type="file" accept=".dxf,text/plain"></div>
+<div class="row3" style="margin-top:10px"><div><label>目標寬度 mm</label><input id="eWidth" type="number" step="0.01" min="0.001" placeholder="載入後顯示"></div><div><label>目標高度 mm</label><input id="eHeight" type="number" step="0.01" min="0.001" placeholder="載入後顯示"></div><div><label>等比縮放 %</label><input id="eScale" type="number" value="100" step="0.1" min="0.01"><label style="margin-top:6px"><input id="eLockRatio" type="checkbox" checked style="width:auto;margin-right:6px">鎖定等比例</label></div></div>
+<div class="row3"><div><label>填充線距 mm</label><input id="eSpacing" type="number" value="0.04" step="0.01" min="0.001"></div><div><label>第 1 道角度 °</label><input id="eAngle1" type="number" value="45" step="1"></div><div><label>第 2 道填充</label><select id="eSecondFill"><option value="0">關閉</option><option value="1" selected>開啟</option></select></div></div>
+<div class="row3"><div><label>第 2 道角度 °</label><input id="eAngle2" type="number" value="90" step="1"></div><div><label>每組填充重複次數</label><input id="eFillRepeat" type="number" value="1" min="1" step="1"></div><div><label>尺寸基準</label><input type="text" value="DXF 原始單位視為 mm" disabled></div></div>
+<div class="row3"><div><label>加工速度 mm/s</label><input id="eMarkSpeed" type="number" value="2000" min="1"></div><div><label>跳轉速度 mm/s</label><input id="eJumpSpeed" type="number" value="5000" min="1"></div><div><label>外框次數</label><input id="eOutlinePass" type="number" value="1" min="0" step="1"></div></div>
+<div class="row3"><div><label>每段延遲 ms</label><input id="eDelay" type="number" value="0.15" min="0" step="0.01"></div><div><label>接點容許誤差 mm</label><input id="eTol" type="number" value="0.01" min="0" step="0.001"></div><div><label>批量件數</label><input id="eQty" type="number" value="1" min="1" step="1"></div></div>
+<div class="btns"><button class="primary" id="eAnalyze">分析並估算</button><button id="eFit">重設視圖</button></div>
+<div id="eStatus" class="status">尚未載入 DXF。</div>
+<div id="eProblemNote" class="problem-note" style="display:none"></div><div id="eList" class="list"></div>
+</div>
+<div class="card"><div class="canvas-tools"><button id="eZoomIn">放大＋</button><button id="eZoomOut">縮小－</button><button id="eFitView">符合視窗</button><span id="eZoomLabel" class="zoom-pill">縮放 100%</span></div><div class="canvas-wrap"><canvas id="eCanvas"></canvas></div><p class="hint">青色：封閉輪廓。綠色：填充路徑。灰色：未納入填充的開放圖元。可用按鈕放大縮小，桌機可用滑鼠滾輪縮放，拖曳可平移。</p></div>
+</div>
+<div class="result dxf-results">
+<div class="metric">封閉輪廓<b id="eClosed">—</b></div><div class="metric">開放圖元<b id="eOpen">—</b></div><div class="metric">外框總長<b id="eOutlineLen">—</b></div><div class="metric">填充總長<b id="eFillLen">—</b></div><div class="metric">填充段數<b id="eSegments">—</b></div><div class="metric">空跑估算<b id="eJumpLen">—</b></div><div class="metric">單件時間<b id="eTime">—</b></div><div class="metric">批量時間<b id="eBatch">—</b></div><div class="metric">外框面積<b id="eArea">—</b></div><div class="metric">包圍尺寸<b id="eSize">—</b></div>
+</div>
+</section>
+</div>
 <script>
-    // 命名空間/變數隔離
-    (function(){
-        const el=(id)=>document.getElementById(id);
-        const PI = Math.PI;
+const $=id=>document.getElementById(id);
+[...document.querySelectorAll('.main-tab')].forEach(t=>t.onclick=()=>{document.querySelectorAll('.main-tab').forEach(x=>x.classList.toggle('active',x===t));document.querySelectorAll('.tool').forEach(x=>x.classList.toggle('active',x.id==='tool'+t.dataset.tool));if(t.dataset.tool==='A')drawA();if(t.dataset.tool==='E')drawE();});
 
-        // --- 輔助函式：Debounce (防抖) - 避免在表格輸入時手機輸入法閃退
-        function debounce(func, delay) {
-            let timeoutId;
-            return function(...args) {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => {
-                    func.apply(this, args);
-                }, delay);
-            };
-        }
+function prepCanvas(c){const d=devicePixelRatio||1,w=c.clientWidth||800,h=c.clientHeight||430;c.width=w*d;c.height=h*d;const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w,h};}
+function drawA(){const L=+$('aL').value,hL=+$('ahL').value,hR=+$('ahR').value,deg=Math.atan2(hR-hL,L)*180/Math.PI;$('aDeg').textContent=Math.abs(deg).toFixed(6);$('aSigned').textContent=deg.toFixed(6);$('aTop').textContent=Math.hypot(L,hR-hL).toFixed(6);const c=$('aCanvas'),{x,w,h}=prepCanvas(c);x.clearRect(0,0,w,h);const pad=45,s=Math.min((w-2*pad)/Math.max(L,1),(h-2*pad)/Math.max(Math.abs(hL)+Math.abs(hR)+20,40));const X=v=>pad+v*s,Y=v=>h/2-v*s;x.lineWidth=2;x.strokeStyle='#94a3b8';x.beginPath();x.moveTo(X(0),Y(0));x.lineTo(X(L),Y(0));x.stroke();x.strokeStyle='#4ade80';[[0,0,0,hL],[L,0,L,hR]].forEach(a=>{x.beginPath();x.moveTo(X(a[0]),Y(a[1]));x.lineTo(X(a[2]),Y(a[3]));x.stroke()});x.strokeStyle='#60a5fa';x.lineWidth=3;x.beginPath();x.moveTo(X(0),Y(hL));x.lineTo(X(L),Y(hR));x.stroke()}
+$('aCalc').onclick=drawA;$('aSwap').onclick=()=>{[$('ahL').value,$('ahR').value]=[$('ahR').value,$('ahL').value];drawA()};['aL','ahL','ahR'].forEach(i=>$(i).oninput=drawA);
+function calcB(){const t=+$('bTotal').value,c=+$('bCap').value;if(t<0||c<=0)return;const r=t%c;$('bTrays').textContent=Math.ceil(t/c);$('bFull').textContent=Math.floor(t/c);$('bRemain').textContent=r;$('bNeed').textContent=t===0?0:(r?c-r:c)}$('bCalc').onclick=calcB;['bTotal','bCap'].forEach(i=>$(i).oninput=calcB);
+function tm(v){v=String(v).padStart(4,'0');const h=+v.slice(0,2),m=+v.slice(2);return h*60+m}function fmt(m){return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}function calcC(){const s=tm($('cStart').value),e=tm($('cEnd').value);if(!(e>s))return;let d=0;[[720,780],[1050,1080]].forEach(([a,b])=>d+=Math.max(0,Math.min(e,b)-Math.max(s,a)));const n=e-s-d;$('cGross').textContent=fmt(e-s);$('cDeduct').textContent=d;$('cNetMin').textContent=n;$('cNet').textContent=fmt(n)}$('cCalc').onclick=calcC;['cStart','cEnd'].forEach(i=>$(i).oninput=calcC);
+function calcD(){const s=+$('dSalary').value,m=+$('dMonthHours').value,h=+$('dOtHours').value,p=+$('dPerDay').value,r1=+$('dR1').value,r2=+$('dR2').value,hr=s/m,days=Math.ceil(h/p);let left=h,pay=0;for(let i=0;i<days;i++){const day=Math.min(p,left);pay+=Math.min(day,2)*hr*r1+Math.max(0,day-2)*hr*r2;left-=day}$('dHourly').textContent=hr.toFixed(2);$('dDays').textContent=days;$('dPay').textContent=Math.round(pay).toLocaleString('zh-TW');$('dGross').textContent=Math.round(s+pay).toLocaleString('zh-TW')}$('dCalc').onclick=calcD;
 
-        // --- 主 Tab 切換邏輯 ---
-        const mainTabA=el('mainTabA'),mainTabB=el('mainTabB'),mainTabC=el('mainTabC'),mainTabD=el('mainTabD');
-        const toolAContent=el('toolAContent'),toolBContent=el('toolBContent'),toolCContent=el('toolCContent'),toolDContent=el('toolDContent');
-
-        function switchMainTab(which){
-            mainTabA.classList.toggle('active',which==='A');
-            mainTabB.classList.toggle('active',which==='B');
-            mainTabC.classList.toggle('active',which==='C');
-            mainTabD.classList.toggle('active',which==='D');
-
-            toolAContent.style.display=(which==='A')?'':'none';
-            toolBContent.style.display=(which==='B')?'':'none';
-            toolCContent.style.display=(which==='C')?'':'none';
-            toolDContent.style.display=(which==='D')?'':'none';
-            
-            setTimeout(() => {
-                if(which==='A') computeA(); 
-                else if(which==='B') computeB(); 
-                else if(which==='C') computeC(); 
-                else if(which==='D') { rebuildRowsD(); } 
-            }, 50);
-        }
-        mainTabA.onclick=()=>switchMainTab('A'); 
-        mainTabB.onclick=()=>switchMainTab('B');
-        mainTabC.onclick=()=>switchMainTab('C');
-        mainTabD.onclick=()=>switchMainTab('D');
-
-
-        // ====================================================================
-        // --- 工具 A: 兩線段角度計算 邏輯 (工具 1) ---
-        // ====================================================================
-        const cvA=el('cvA'),ctxA=cvA.getContext('2d');
-        const tabLenA=el('tabLenA'),tabXYA=el('tabXYA'),paneLenA=el('paneLenA'),paneXYA=el('paneXYA');
-        
-        function switchSubTabA(which){
-            const lenMode=(which==='len');
-            tabLenA.classList.toggle('active',lenMode);
-            tabXYA.classList.toggle('active',!lenMode);
-            paneLenA.style.display=lenMode?'':'none';
-            paneXYA.style.display=lenMode?'none':'';
-            computeA();
-        }
-        tabLenA.onclick=()=>switchSubTabA('len'); tabXYA.onclick=()=>switchSubTabA('xy');
-        
-        function drawArrowA(ax,ay,bx,by,color,w=2){
-            const head=8,ang=Math.atan2(by-ay,bx-ax);
-            ctxA.strokeStyle=color;ctxA.lineWidth=w;ctxA.beginPath();ctxA.moveTo(ax,ay);ctxA.lineTo(bx,by);ctxA.stroke();
-            ctxA.beginPath();ctxA.moveTo(bx,by);
-            ctxA.lineTo(bx-head*Math.cos(ang-0.5),by-head*Math.sin(ang-0.5));
-            ctxA.lineTo(bx-head*Math.cos(ang+0.5),by-head*Math.sin(ang+0.5));
-            ctxA.closePath();ctxA.fillStyle=color;ctxA.fill();
-        }
-        function computeFromLenA(){
-            const L=parseFloat(el('L').value),hL=parseFloat(el('hL').value),hR=parseFloat(el('hR').value);
-            if(!isFinite(L)||!isFinite(hL)||!isFinite(hR)||L===0) throw new Error('輸入錯誤');
-            const A={x:0,y:0},B={x:L,y:0},Ap={x:0,y:hL},Bp={x:L,y:hR};
-            return {A,B,Ap,Bp};
-        }
-        function computeFromXYA(){
-            const x1=+el('x1').value,y1=+el('y1').value,x2=+el('x2').value,y2=+el('y2').value,hL=+el('hL2').value,hR=+el('hR2').value;
-            const ABx=x2-x1,ABy=y2-y1,L=Math.hypot(ABx,ABy); if(L===0) throw new Error('AB 長度=0');
-            const nx=-ABy/L,ny=ABx/L; 
-            const A={x:x1,y:y1},B={x:x2,y:y2};
-            const Ap={x:x1+nx*hL,y:y1+ny*hL},Bp={x:x2+nx*hR,y:y2+ny*hR};
-            return {A,B,Ap,Bp};
-        }
-        function calcA(A,B,Ap,Bp){
-            const AB={x:B.x-A.x,y:B.y-A.y},AT={x:Bp.x-Ap.x,y:Bp.y-Ap.y};
-            const dot=AB.x*AT.x+AB.y*AT.y,crs=AB.x*AT.y-AB.y*AT.x;
-            return {
-                deg:Math.abs(Math.atan2(crs,dot)*180/PI),
-                degSigned:Math.atan2(crs,dot)*180/PI,
-                lenTop:Math.hypot(AT.x,AT.y)
-            };
-        }
-        
-        function fitDrawA(A,B,Ap,Bp,ang){
-            ctxA.clearRect(0,0,cvA.width,cvA.height);
-            const pts=[A,B,Ap,Bp];let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
-            for(const p of pts){minx=Math.min(minx,p.x);miny=Math.min(miny,p.y);maxx=Math.max(maxx,p.x);maxy=Math.max(maxy,p.y);}
-            
-            const pad=30, w=maxx-minx||1, h=maxy-miny||1;
-            const s=Math.min((cvA.width-2*pad)/w,(cvA.height-2*pad)/h); 
-            
-            const ox=pad-minx*s + (cvA.width - (w*s + 2*pad))/2;
-            const oy=pad-miny*s + (cvA.height - (h*s + 2*pad))/2; 
-
-            const TX=p=>ox+p.x*s;
-            const TY=p=>cvA.height-(oy+p.y*s); 
-
-            drawArrowA(TX(A),TY(A),TX(B),TY(B),'#94a3b8'); 
-            drawArrowA(TX(A),TY(A),TX(Ap),TY(Ap),'#4ade80'); 
-            drawArrowA(TX(B),TY(B),TX(Bp),TY(Bp),'#4ade80'); 
-            drawArrowA(TX(Ap),TY(Ap),TX(Bp),TY(Bp),'#60a5fa',3); 
-            
-            ctxA.fillStyle='#22d3ee';
-            ctxA.font='16px sans-serif'; 
-            ctxA.fillText(ang.deg.toFixed(3)+'°',TX(Ap)+s*1.5,TY(Ap)-s*1.5); 
-        }
-        
-        function computeA(){
-            if(toolAContent.style.display==='none') return; 
-            
-            cvA.width = cvA.clientWidth;
-            cvA.height = cvA.clientHeight;
-
-            try{
-                const useLen=tabLenA.classList.contains('active');
-                const {A,B,Ap,Bp}=useLen?computeFromLenA():computeFromXYA();
-                const ang=calcA(A,B,Ap,Bp);
-                el('degA').textContent=ang.deg.toFixed(6);
-                el('degSignedA').textContent=ang.degSigned.toFixed(6);
-                el('lenTopA').textContent=ang.lenTop.toFixed(6);
-                fitDrawA(A,B,Ap,Bp,ang);
-            }catch(e){
-                ctxA.clearRect(0,0,cvA.width,cvA.height);
-                ctxA.fillStyle='#f87171';
-                ctxA.font='16px sans-serif';
-                ctxA.fillText(`錯誤: ${e.message}`, 20, 30);
-                el('degA').textContent='—';
-                el('degSignedA').textContent='—';
-                el('lenTopA').textContent='—';
+let dxfState={sourceClosed:[],sourceOpen:[],closed:[],open:[],fills:[],bounds:null,sourceBounds:null,outlineLen:0,fillLen:0,jumpLen:0,area:0,scaleX:1,scaleY:1,problems:[]};
+let dxfView={zoom:1,panX:0,panY:0,dragging:false,lastX:0,lastY:0,pinchDist:0,pinchZoom:1,selectedProblem:-1};
+function resetDxfView(redraw=true){dxfView.zoom=1;dxfView.panX=0;dxfView.panY=0;if(redraw)drawE()}
+function updateZoomLabel(){const z=$('eZoomLabel');if(z)z.textContent='縮放 '+(dxfView.zoom*100).toFixed(dxfView.zoom>=1?0:1)+'%'}
+function getBaseViewTransform(w,h,b){const pad=25,sw=Math.max(1,b.maxX-b.minX),sh=Math.max(1,b.maxY-b.minY),fit=Math.min((w-pad*2)/sw,(h-pad*2)/sh),extraX=(w-pad*2-sw*fit)/2,extraY=(h-pad*2-sh*fit)/2;return{fit,pad,sw,sh,tx:pad+extraX-b.minX*fit,ty:h-pad-extraY+b.minY*fit}}
+function canvasPoint(ev,canvas){const rect=canvas.getBoundingClientRect();const sx=canvas.width/rect.width,sy=canvas.height/rect.height;return{x:(ev.clientX-rect.left)*sx,y:(ev.clientY-rect.top)*sy}}
+function touchDist(t1,t2,canvas){const p1=canvasPoint(t1,canvas),p2=canvasPoint(t2,canvas);return Math.hypot(p2.x-p1.x,p2.y-p1.y)}
+function zoomDxfAt(factor,mx,my){const c=$('eCanvas'),all=[...dxfState.closed,...dxfState.open],b=dxfState.bounds||boundsOf(all);if(!b)return;const {w,h}=prepCanvas(c),base=getBaseViewTransform(w,h,b),oldZoom=dxfView.zoom||1,newZoom=Math.max(0.1,Math.min(50,oldZoom*factor)),oldScale=base.fit*oldZoom,newScale=base.fit*newZoom,oldTx=base.tx+dxfView.panX,oldTy=base.ty+dxfView.panY,wx=(mx-oldTx)/oldScale,wy=(oldTy-my)/oldScale,newTx=mx-wx*newScale,newTy=my+wy*newScale;dxfView.zoom=newZoom;dxfView.panX=newTx-base.tx;dxfView.panY=newTy-base.ty;drawE()}
+function bindDxfCanvas(){const c=$('eCanvas');if(!c||c.dataset.bound==='1')return;c.dataset.bound='1';c.addEventListener('wheel',ev=>{if(!dxfState.bounds)return;ev.preventDefault();const p=canvasPoint(ev,c);zoomDxfAt(ev.deltaY<0?1.15:1/1.15,p.x,p.y)},{passive:false});c.addEventListener('mousedown',ev=>{dxfView.dragging=true;const p=canvasPoint(ev,c);dxfView.lastX=p.x;dxfView.lastY=p.y;c.classList.add('dragging')});window.addEventListener('mousemove',ev=>{if(!dxfView.dragging)return;const p=canvasPoint(ev,c),dx=p.x-dxfView.lastX,dy=p.y-dxfView.lastY;dxfView.panX+=dx;dxfView.panY+=dy;dxfView.lastX=p.x;dxfView.lastY=p.y;drawE()});window.addEventListener('mouseup',()=>{dxfView.dragging=false;c.classList.remove('dragging')});c.addEventListener('mouseleave',()=>{dxfView.dragging=false;c.classList.remove('dragging')});c.addEventListener('touchstart',ev=>{if(ev.touches.length===1){const p=canvasPoint(ev.touches[0],c);dxfView.dragging=true;dxfView.lastX=p.x;dxfView.lastY=p.y}else if(ev.touches.length===2){dxfView.dragging=false;dxfView.pinchDist=touchDist(ev.touches[0],ev.touches[1],c);dxfView.pinchZoom=dxfView.zoom||1;}},{passive:true});c.addEventListener('touchmove',ev=>{if(ev.touches.length===1&&dxfView.dragging){ev.preventDefault();const p=canvasPoint(ev.touches[0],c),dx=p.x-dxfView.lastX,dy=p.y-dxfView.lastY;dxfView.panX+=dx;dxfView.panY+=dy;dxfView.lastX=p.x;dxfView.lastY=p.y;drawE()}else if(ev.touches.length===2){ev.preventDefault();const rect=c.getBoundingClientRect(),midClient={clientX:(ev.touches[0].clientX+ev.touches[1].clientX)/2,clientY:(ev.touches[0].clientY+ev.touches[1].clientY)/2},mid=canvasPoint(midClient,c),distNow=touchDist(ev.touches[0],ev.touches[1],c);if(dxfView.pinchDist>0){const factor=distNow/dxfView.pinchDist;dxfView.zoom=dxfView.pinchZoom;zoomDxfAt(factor,mid.x,mid.y)}}},{passive:false});c.addEventListener('touchend',()=>{dxfView.dragging=false;dxfView.pinchDist=0});$('eZoomIn').onclick=()=>{const {w,h}=prepCanvas(c);zoomDxfAt(1.25,w/2,h/2)};$('eZoomOut').onclick=()=>{const {w,h}=prepCanvas(c);zoomDxfAt(1/1.25,w/2,h/2)};$('eFitView').onclick=()=>resetDxfView();$('eFit').onclick=()=>resetDxfView();}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function polyLen(p,closed=true){let s=0;for(let i=1;i<p.length;i++)s+=dist(p[i-1],p[i]);if(closed&&p.length>2)s+=dist(p[p.length-1],p[0]);return s}
+function polyArea(p){let a=0;for(let i=0,j=p.length-1;i<p.length;j=i++)a+=(p[j].x+p[i].x)*(p[j].y-p[i].y);return Math.abs(a/2)}
+function arcPoints(cx,cy,r,a0,a1,n=72){let span=a1-a0;if(span<=0)span+=Math.PI*2;const p=[];for(let i=0;i<=n;i++){const a=a0+span*i/n;p.push({x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)})}return p}
+function entityToPath(e){const t=e.type;if(t==='LWPOLYLINE'||t==='POLYLINE'){const p=(e.vertices||[]).map(v=>({x:v.x,y:v.y}));const closed=!!e.shape||!!e.closed||((e.flags||0)&1)===1;return{p,closed,type:t}}if(t==='CIRCLE'){return{p:arcPoints(e.center.x,e.center.y,e.radius,0,Math.PI*2,120).slice(0,-1),closed:true,type:t}}if(t==='ELLIPSE'){const p=[],maj=e.majorAxisEndPoint||{x:e.majorX||1,y:e.majorY||0},ratio=e.axisRatio||e.ratio||1,c=e.center||{x:0,y:0},a=Math.hypot(maj.x,maj.y),rot=Math.atan2(maj.y,maj.x),b=a*ratio;for(let i=0;i<120;i++){const q=i/120*Math.PI*2,x=a*Math.cos(q),y=b*Math.sin(q);p.push({x:c.x+x*Math.cos(rot)-y*Math.sin(rot),y:c.y+x*Math.sin(rot)+y*Math.cos(rot)})}return{p,closed:true,type:t}}if(t==='LINE'){const a=e.vertices?.[0]||e.start,b=e.vertices?.[1]||e.end;if(a&&b)return{p:[{x:a.x,y:a.y},{x:b.x,y:b.y}],closed:false,type:t}}if(t==='ARC'){return{p:arcPoints(e.center.x,e.center.y,e.radius,(e.startAngle||0)*Math.PI/180,(e.endAngle||360)*Math.PI/180,60),closed:false,type:t}}if(t==='SPLINE'&&e.controlPoints?.length>2){const p=e.controlPoints.map(v=>({x:v.x,y:v.y})),closed=!!e.closed||dist(p[0],p[p.length-1])<0.001;return{p,closed,type:t}}return null}
+function rotate(p,a){const c=Math.cos(a),s=Math.sin(a);return{x:p.x*c-p.y*s,y:p.x*s+p.y*c}}
+function scanFillPaths(paths,spacing,angle,maxSegments=200000){
+    // 將所有封閉輪廓一起求交，採奇偶規則：外框內填充、第一層內孔挖空、孔內島再次填充。
+    const a=-angle*Math.PI/180;
+    const rotated=paths.map(o=>(o.p||o).map(p=>rotate(p,a))).filter(p=>p.length>2);
+    const ys=rotated.flatMap(p=>p.map(q=>q.y));
+    if(!ys.length)return[];
+    const min=Math.min(...ys),max=Math.max(...ys),segs=[];
+    const scanCount=Math.ceil((max-min)/spacing);
+    if(scanCount>100000) throw new Error(`填充線過密，預計需掃描 ${scanCount.toLocaleString()} 條線。請把間距調大到至少 ${((max-min)/100000).toFixed(4)} mm`);
+    for(let y=min+spacing/2;y<max;y+=spacing){
+        const xs=[];
+        for(const r of rotated){
+            for(let i=0,j=r.length-1;i<r.length;j=i++){
+                const A=r[j],B=r[i];
+                // 半開區間交點規則，避免掃描線正好經過頂點時重複計數。
+                if((A.y>y)!=(B.y>y)) xs.push(A.x+(y-A.y)*(B.x-A.x)/(B.y-A.y));
             }
         }
-        
-        el('calcBtnA').onclick=computeA; 
-        el('swapBtnA').onclick=()=>{
-            if(tabLenA.classList.contains('active')){
-                [el('hL').value,el('hR').value]=[el('hR').value,el('hL').value];
-            }else{
-                [el('hL2').value,el('hR2').value]=[el('hR2').value,el('hL2').value];
-            }
-            computeA();
-        };
-        el('resetBtnA').onclick=computeA; 
-        document.querySelectorAll('#toolAContent input').forEach(i=>i.addEventListener('input',computeA));
+        xs.sort((u,v)=>u-v);
+        for(let k=0;k+1<xs.length;k+=2){
+            if(xs[k+1]-xs[k] < 1e-9) continue;
+            segs.push([rotate({x:xs[k],y},-a),rotate({x:xs[k+1],y},-a)]);
+            if(segs.length>maxSegments) throw new Error(`填充段數超過 ${maxSegments.toLocaleString()}，請調大填充間距`);
+        }
+    }
+    return segs;
+}
+function pointInPoly(pt,poly){
+    let inside=false;
+    for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+        const A=poly[i],B=poly[j];
+        if(((A.y>pt.y)!=(B.y>pt.y)) && pt.x < (B.x-A.x)*(pt.y-A.y)/(B.y-A.y)+A.x) inside=!inside;
+    }
+    return inside;
+}
+function hatchAreaEvenOdd(paths){
+    let total=0;
+    for(let i=0;i<paths.length;i++){
+        const p=paths[i].p||paths[i];
+        if(p.length<3)continue;
+        const sample=p[0];
+        let depth=0;
+        for(let j=0;j<paths.length;j++){
+            if(i===j)continue;
+            const q=paths[j].p||paths[j];
+            if(q.length>2 && pointInPoly(sample,q))depth++;
+        }
+        total+=(depth%2===0?1:-1)*polyArea(p);
+    }
+    return Math.max(0,total);
+}
+function boundsOf(paths){const pts=paths.flatMap(p=>p.p||p).flatMap(x=>Array.isArray(x)?x:[x]);if(!pts.length)return null;const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);return{minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}}
+function fmtTime(sec){if(!isFinite(sec))return'—';if(sec<60)return sec.toFixed(2)+' 秒';const m=Math.floor(sec/60),s=Math.round(sec%60);if(m<60)return `${m} 分 ${s} 秒`;return `${Math.floor(m/60)} 小時 ${m%60} 分`}
+function scalePaths(paths,sx,sy){return paths.map(o=>({...o,p:o.p.map(q=>({x:q.x*sx,y:q.y*sy}))}))}
+function applyScaleE(source='scale'){
+    if(!dxfState.sourceBounds)return;
+    const b=dxfState.sourceBounds,ow=b.maxX-b.minX,oh=b.maxY-b.minY;
+    let sx=dxfState.scaleX||1,sy=dxfState.scaleY||1;
+    const lock=$('eLockRatio').checked;
+    if(source==='width'){
+        const w=+$('eWidth').value;if(!(w>0)||!(ow>0))return;sx=w/ow;if(lock)sy=sx;
+    }else if(source==='height'){
+        const h=+$('eHeight').value;if(!(h>0)||!(oh>0))return;sy=h/oh;if(lock)sx=sy;
+    }else{
+        const sc=+$('eScale').value/100;if(!(sc>0))return;sx=sc;sy=sc;
+    }
+    dxfState.scaleX=sx;dxfState.scaleY=sy;
+    dxfState.closed=scalePaths(dxfState.sourceClosed,sx,sy);
+    dxfState.open=scalePaths(dxfState.sourceOpen,sx,sy);
+    dxfState.bounds=boundsOf([...dxfState.closed,...dxfState.open]);dxfState.problems=diagnoseOpenEndpoints(dxfState.open,Math.max(0,+$('eTol').value||0.01));
+    if(dxfState.bounds){
+        $('eWidth').value=(dxfState.bounds.maxX-dxfState.bounds.minX).toFixed(3);
+        $('eHeight').value=(dxfState.bounds.maxY-dxfState.bounds.minY).toFixed(3);
+    }
+    if(lock && Math.abs(sx-sy)<1e-12)$('eScale').value=(sx*100).toFixed(2);
+}
 
-
-        // ====================================================================
-        // --- 工具 B: 盤數計算 (工具 2) 邏輯 ---
-        // ====================================================================
-
-        function computeB(){
-            if(toolBContent.style.display==='none') return;
-
-            const rawTotalCount = el('totalCount').value;
-            const rawTrayCapacity = el('trayCapacity').value;
-            
-            // 驗證輸入為有效整數且符合正負限制
-            const totalCount = parseInt(rawTotalCount);
-            const trayCapacity = parseInt(rawTrayCapacity);
-
-            // 防呆邏輯檢查
-            if (rawTotalCount === '' || rawTrayCapacity === '' || isNaN(totalCount) || isNaN(trayCapacity) ||
-                totalCount < 0 || !Number.isInteger(parseFloat(rawTotalCount)) ||
-                trayCapacity <= 0 || !Number.isInteger(parseFloat(rawTrayCapacity))) 
-            {
-                el('totalTraysB').textContent = el('fullTraysB').textContent = el('remainderB').textContent = el('neededB').textContent = '—';
-                
-                // 顯示錯誤狀態 (例如，將其中一個結果欄位用來顯示錯誤)
-                if (totalCount < 0 || !Number.isInteger(parseFloat(rawTotalCount)) ) {
-                    el('totalTraysB').textContent = '物料數需非負整數';
-                } else if (trayCapacity <= 0 || !Number.isInteger(parseFloat(rawTrayCapacity)) ) {
-                     el('totalTraysB').textContent = '格數需正整數';
+function diagnoseOpenEndpoints(openPaths,tol){
+    const ends=[];
+    openPaths.forEach((o,pathIndex)=>{
+        if(!o.p||o.p.length<2)return;
+        ends.push({point:o.p[0],pathIndex,end:'起點'});
+        ends.push({point:o.p[o.p.length-1],pathIndex,end:'終點'});
+    });
+    const used=new Array(ends.length).fill(false),clusters=[];
+    for(let i=0;i<ends.length;i++){
+        if(used[i])continue;
+        const members=[];used[i]=true;members.push(ends[i]);
+        let changed=true;
+        while(changed){
+            changed=false;
+            for(let j=0;j<ends.length;j++){
+                if(used[j])continue;
+                if(members.some(m=>dist(m.point,ends[j].point)<=tol)){
+                    used[j]=true;members.push(ends[j]);changed=true;
                 }
-                
-                return;
-            }
-
-            const totalTrays = Math.ceil(totalCount / trayCapacity); 
-            const fullTrays = Math.floor(totalCount / trayCapacity); 
-            const remainder = totalCount % trayCapacity;
-
-            let needed = 0;
-            if (remainder > 0) {
-                needed = trayCapacity - remainder;
-            }
-            else if (totalCount >= 0 && remainder === 0) { // 包含 0 和滿盤的情況
-                 needed = trayCapacity;
-                 if(totalCount === 0) needed = 0; // 數量為 0 時，需要數為 0
-            }
-
-            el('totalTraysB').textContent = totalTrays;
-            el('fullTraysB').textContent = fullTrays;
-            el('remainderB').textContent = remainder;
-            el('neededB').textContent = needed;
-        }
-
-        function resetInputsB(){
-            el('totalCount').value = '1000';
-            el('trayCapacity').value = '96';
-            computeB();
-        }
-
-        // 優化：強制輸入框只能輸入數字
-        function enforceInteger(e) {
-            const val = e.target.value;
-            e.target.value = val.replace(/[^\d]/g, ''); 
-        }
-
-        const totalCountInput = el('totalCount');
-        const trayCapacityInput = el('trayCapacity');
-
-        totalCountInput.addEventListener('input', enforceInteger);
-        trayCapacityInput.addEventListener('input', enforceInteger);
-        totalCountInput.addEventListener('input', computeB);
-        trayCapacityInput.addEventListener('input', computeB);
-
-        el('calcBtnB').onclick = computeB;
-        el('resetBtnB').onclick = resetInputsB;
-
-
-        // ====================================================================
-        // --- 工具 C: 快速工時計算機 (工具 3) 邏輯 ---
-        // ====================================================================
-
-        const LUNCH_START_MIN = 720;   // 12:00
-        const LUNCH_END_MIN = 780;     // 13:00
-        const DINNER_START_MIN = 1050; // 17:30
-        const DINNER_END_MIN = 1080;   // 18:00
-
-        const DEDUCTION_INTERVALS = [
-            [LUNCH_START_MIN, LUNCH_END_MIN], 
-            [DINNER_START_MIN, DINNER_END_MIN] 
-        ];
-
-        function timeToMinutes(hhmm) {
-            const timeStr = String(hhmm).padStart(4, '0');
-            const h = parseInt(timeStr.slice(0, 2));
-            const m = parseInt(timeStr.slice(2, 4));
-            if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
-                return NaN; 
-            }
-            return h * 60 + m;
-        }
-
-        function formatMinutes(minutes) {
-            const h = Math.floor(minutes / 60);
-            const m = minutes % 60;
-            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        }
-
-        function computeC(){
-            if(toolCContent.style.display==='none') return; 
-
-            el('netMinutesC').textContent = el('netTimeC').textContent = el('grossMinutesC').textContent = el('grossTimeC').textContent = el('deductionC').textContent = '—';
-
-            try {
-                const startHHMM = el('startTimeC').value;
-                const endHHMM = el('endTimeC').value;
-                
-                const startMin = timeToMinutes(startHHMM);
-                const endMin = timeToMinutes(endHHMM);
-                
-                if (isNaN(startMin) || isNaN(endMin)) {
-                     throw new Error('請輸入有效的四位數字時間');
-                }
-                
-                if (startMin >= endMin) {
-                    throw new Error('結束時間必須晚於開始時間');
-                }
-                
-                const grossMinutes = endMin - startMin;
-                let totalDeduction = 0;
-
-                DEDUCTION_INTERVALS.forEach(([dStart, dEnd]) => {
-                    if (startMin < dEnd && endMin > dStart) {
-                        const overlapStart = Math.max(startMin, dStart);
-                        const overlapEnd = Math.min(endMin, dEnd);
-                        totalDeduction += (overlapEnd - overlapStart);
-                    }
-                });
-
-                const netMinutes = grossMinutes - totalDeduction;
-                
-                el('grossTimeC').textContent = formatMinutes(grossMinutes);
-                el('netMinutesC').textContent = netMinutes;
-                el('netTimeC').textContent = formatMinutes(netMinutes);
-                el('grossMinutesC').textContent = grossMinutes;
-                el('deductionC').textContent = totalDeduction;
-
-            } catch(e) {
-                el('grossTimeC').textContent = '錯誤：' + e.message; 
-                el('deductionC').textContent = '—';
-                el('netMinutesC').textContent = '—';
-                el('netTimeC').textContent = '—';
             }
         }
-
-        function resetInputsC(){
-            el('startTimeC').value = '0855';
-            el('endTimeC').value = '1810';
-            computeC(); 
+        const x=members.reduce((a,m)=>a+m.point.x,0)/members.length;
+        const y=members.reduce((a,m)=>a+m.point.y,0)/members.length;
+        clusters.push({members,point:{x,y}});
+    }
+    const dangling=clusters.filter(c=>c.members.length%2===1);
+    return dangling.map((c,i)=>{
+        let nearest=null,nearestDist=Infinity;
+        dangling.forEach((d,j)=>{if(i===j)return;const dd=dist(c.point,d.point);if(dd<nearestDist){nearestDist=dd;nearest=j}});
+        const owner=c.members[0];
+        return {id:i+1,point:c.point,pathIndex:owner.pathIndex,end:owner.end,nearest,nearestDist:Number.isFinite(nearestDist)?nearestDist:null};
+    });
+}
+function renderProblemList(){
+    const note=$('eProblemNote'),list=$('eList'),problems=dxfState.problems||[];
+    if(!problems.length){note.style.display='none';return}
+    note.style.display='block';
+    note.innerHTML=`偵測到 <span class="problem-count">${problems.length}</span> 個疑似斷開端點。紅色編號可點擊定位。`;
+    const existing=list.innerHTML;
+    const rows=problems.map((p,i)=>`<div class="list-row problem" data-problem="${i}"><span>⚠ 端點 ${p.id}｜開放圖元 ${p.pathIndex+1} ${p.end}<span class="small"><br>X ${p.point.x.toFixed(4)}，Y ${p.point.y.toFixed(4)}</span></span><span>${p.nearestDist==null?'無配對':`最近 ${p.nearestDist.toFixed(4)} mm`}</span></div>`).join('');
+    list.innerHTML=rows+existing;
+    list.querySelectorAll('[data-problem]').forEach(row=>row.onclick=()=>focusProblem(+row.dataset.problem));
+}
+function focusProblem(index){
+    const p=dxfState.problems[index];if(!p)return;
+    dxfView.selectedProblem=index;
+    const c=$('eCanvas'),all=[...dxfState.closed,...dxfState.open],b=dxfState.bounds||boundsOf(all);if(!b)return;
+    const {w,h}=prepCanvas(c),base=getBaseViewTransform(w,h,b);
+    dxfView.zoom=Math.max(6,Math.min(40,dxfView.zoom||1));
+    const sc=base.fit*dxfView.zoom;
+    dxfView.panX=w/2-(p.point.x*sc+base.tx);
+    dxfView.panY=h/2-(-p.point.y*sc+base.ty);
+    drawE();
+    document.querySelectorAll('[data-problem]').forEach((r,i)=>r.classList.toggle('active',i===index));
+}
+function analyzeDXF(){
+    const spacing=+$('eSpacing').value,angle1=+$('eAngle1').value,angle2=+$('eAngle2').value,second=$('eSecondFill').value==='1',repeat=Math.max(1,Math.floor(+$('eFillRepeat').value||1)),outlinePass=+$('eOutlinePass').value,mark=+$('eMarkSpeed').value,jump=+$('eJumpSpeed').value,delay=+$('eDelay').value/1000,qty=+$('eQty').value;
+    if(!dxfState.closed.length){$('eStatus').textContent='請先選擇並成功載入 DXF。';$('eStatus').className='status bad';return}
+    if(!Number.isFinite(spacing)||spacing<=0){$('eStatus').textContent='填充間距必須大於 0。';$('eStatus').className='status bad';return}
+    if(!Number.isFinite(mark)||mark<=0||!Number.isFinite(jump)||jump<=0){$('eStatus').textContent='加工速度與跳轉速度必須大於 0。';$('eStatus').className='status bad';return}
+    try{
+        $('eStatus').textContent='正在重新計算尺寸與多方向填充…';$('eStatus').className='status';
+        const angles=second?[angle1,angle2]:[angle1];
+        let fills=[];
+        for(let r=0;r<repeat;r++) for(const angle of angles){
+            const remain=200000-fills.length;if(remain<=0)throw new Error('填充段數過多，請調大填充間距或減少填充道數');
+            fills.push(...scanFillPaths(dxfState.closed,spacing,angle,remain));
         }
+        let fillLen=fills.reduce((s,q)=>s+dist(q[0],q[1]),0);
+        let outlineLen=dxfState.closed.reduce((s,o)=>s+polyLen(o.p,true),0)*outlinePass;
+        let jumpLen=0,prev=null;for(const q of fills){if(prev)jumpLen+=dist(prev,q[0]);prev=q[1]}
+        const segCount=fills.length+dxfState.closed.length*outlinePass;
+        const sec=outlineLen/mark+fillLen/mark+jumpLen/jump+segCount*delay;
+        dxfState.fills=fills;dxfState.fillLen=fillLen;dxfState.outlineLen=outlineLen;dxfState.jumpLen=jumpLen;dxfState.area=hatchAreaEvenOdd(dxfState.closed);dxfState.bounds=boundsOf(dxfState.closed);
+        $('eClosed').textContent=dxfState.closed.length;$('eOpen').textContent=dxfState.open.length;$('eOutlineLen').textContent=outlineLen.toFixed(2)+' mm';$('eFillLen').textContent=fillLen.toFixed(2)+' mm';$('eSegments').textContent=segCount.toLocaleString();$('eJumpLen').textContent=jumpLen.toFixed(2)+' mm';$('eTime').textContent=fmtTime(sec);$('eBatch').textContent=fmtTime(sec*qty);$('eArea').textContent=dxfState.area.toFixed(2)+' mm²';$('eSize').textContent=dxfState.bounds?`${(dxfState.bounds.maxX-dxfState.bounds.minX).toFixed(2)} × ${(dxfState.bounds.maxY-dxfState.bounds.minY).toFixed(2)} mm`:'—';
+        $('eStatus').textContent=`分析完成：${angles.join('° + ')}°，共 ${angles.length*repeat} 道填充。已依奇偶規則辨識外框、內孔與孔內島。`;$('eStatus').className='status ok';drawE();
+    }catch(err){console.error(err);dxfState.fills=[];$('eStatus').textContent='無法計算：'+err.message;$('eStatus').className='status bad';drawE()}
+}
+function drawE(){
+    const c=$('eCanvas'),{x,w,h}=prepCanvas(c);updateZoomLabel();x.clearRect(0,0,w,h);
+    const all=[...dxfState.closed,...dxfState.open],b=dxfState.bounds||boundsOf(all);
+    if(!b){x.fillStyle='#94a3b8';x.fillText('載入 DXF 後顯示預覽',20,30);return}
+    const base=getBaseViewTransform(w,h,b),scale=base.fit*(dxfView.zoom||1),tx=base.tx+dxfView.panX,ty=base.ty+dxfView.panY;
+    const X=v=>v*scale+tx,Y=v=>-v*scale+ty;
+    const path=(p,color,width=1)=>{x.strokeStyle=color;x.lineWidth=width;x.beginPath();p.forEach((q,i)=>i?x.lineTo(X(q.x),Y(q.y)):x.moveTo(X(q.x),Y(q.y)));x.stroke()};
+    dxfState.open.forEach((o,i)=>path(o.p,(dxfState.problems||[]).some(p=>p.pathIndex===i)?'#f87171':'#64748b',1.5));
+    dxfState.closed.forEach(o=>path([...o.p,o.p[0]],'#22d3ee',1.8));
+    const previewMax=12000,step=Math.max(1,Math.ceil(dxfState.fills.length/previewMax));
+    for(let i=0;i<dxfState.fills.length;i+=step)path(dxfState.fills[i],'#4ade80',1);
+    (dxfState.problems||[]).forEach((p,i)=>{
+        const px=X(p.point.x),py=Y(p.point.y),sel=i===dxfView.selectedProblem;
+        x.beginPath();x.arc(px,py,sel?9:7,0,Math.PI*2);x.fillStyle=sel?'#facc15':'#ef4444';x.fill();x.strokeStyle='#fff';x.lineWidth=1.5;x.stroke();
+        x.fillStyle='#fff';x.font='bold 11px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(String(p.id),px,py+.5);
+    });
+    x.textAlign='start';x.textBaseline='alphabetic';
+}
+$('eFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const text=await f.text(),parser=new DxfParser(),dxf=parser.parseSync(text),closed=[],open=[];(dxf.entities||[]).forEach(e=>{const o=entityToPath(e);if(!o||o.p.length<2)return;(o.closed?closed:open).push(o)});dxfState={sourceClosed:closed,sourceOpen:open,closed,open,fills:[],bounds:boundsOf([...closed,...open]),sourceBounds:boundsOf([...closed,...open]),outlineLen:0,fillLen:0,jumpLen:0,area:0,scaleX:1,scaleY:1,problems:diagnoseOpenEndpoints(open,Math.max(0,+$('eTol').value||0.01))};dxfView.selectedProblem=-1;if(dxfState.bounds){$('eWidth').value=(dxfState.bounds.maxX-dxfState.bounds.minX).toFixed(3);$('eHeight').value=(dxfState.bounds.maxY-dxfState.bounds.minY).toFixed(3);$('eScale').value='100';}$('eStatus').textContent=`已載入 ${f.name}：${closed.length} 個封閉輪廓、${open.length} 個開放圖元。`;resetDxfView(false);updateZoomLabel();$('eStatus').className='status ok';$('eList').innerHTML=[...closed.map((o,i)=>`<div class="list-row"><span>封閉 ${i+1} <span class="small">${o.type}</span></span><span>${polyLen(o.p,true).toFixed(2)} mm</span></div>`),...open.slice(0,30).map((o,i)=>`<div class="list-row"><span>開放 ${i+1} <span class="small">${o.type}</span></span><span>${polyLen(o.p,false).toFixed(2)} mm</span></div>`)].join('');renderProblemList();analyzeDXF()}catch(err){console.error(err);$('eStatus').textContent='DXF 解析失敗：'+err.message;$('eStatus').className='status bad'}};
+$('eAnalyze').onclick=analyzeDXF;bindDxfCanvas();
+let eAnalyzeTimer=null;
+function scheduleAnalyzeE(){
+    clearTimeout(eAnalyzeTimer);
+    eAnalyzeTimer=setTimeout(()=>{if(dxfState.closed.length)analyzeDXF()},450);
+}
+['eSpacing','eAngle1','eAngle2','eSecondFill','eFillRepeat','eMarkSpeed','eJumpSpeed','eOutlinePass','eDelay','eQty'].forEach(i=>{
+    $(i).addEventListener('input',scheduleAnalyzeE);
+    $(i).addEventListener('change',()=>{clearTimeout(eAnalyzeTimer);if(dxfState.closed.length)analyzeDXF()});
+});
 
-        el('calcBtnC').onclick=computeC;
-        el('resetBtnC').onclick=resetInputsC;
-        el('startTimeC').addEventListener('input', computeC);
-        el('endTimeC').addEventListener('input', computeC);
-
-
-        // ====================================================================
-        // --- 工具 D: 加班費試算 (工具 4) 邏輯 ---
-        // ====================================================================
-        
-        // 勞保/健保級距資訊 (使用 2024 年基本工資調漲後的數據)
-        const GRADE_TABLE=[28590,28800,30300,31800,33300,34800,36300,38200,40100,42000,43900,45800];
-        // 假設 2025 年費率 (勞保12.5%*個人20%, 健保5.17%*個人30%) - 僅供試算
-        const LABOR_RATE=0.125,LABOR_EMP=0.20,NHI_RATE=0.0517,NHI_EMP=0.30;
-        
-        function money(n){return new Intl.NumberFormat('zh-TW').format(Math.round(n||0));}
-        function pickInsured(s){for(const g of GRADE_TABLE){if(g>=s)return g;}return GRADE_TABLE[GRADE_TABLE.length-1];}
-        function calcLabor(i){return Math.round(i*LABOR_RATE*LABOR_EMP);}
-        function calcNhi(i){return Math.round(i*NHI_RATE*NHI_EMP);}
-        function daysInMonth(y,m){
-            if(!y || !m) return 30; 
-            return new Date(y,m,0).getDate();
-        }
-        function weekend(y,m,d){
-            const date = new Date(y, m-1, d);
-            if (isNaN(date)) return '平日'; 
-            let w=date.getDay();
-            return (w==0||w==6)?'休息日':'平日';
-        }
-        
-        const stateD={
-            salary:35000,monthHours:240,meal:60,other:0,
-            r1:1.33,r2:1.66,rh:2.0,
-            year:new Date().getFullYear(),
-            month:new Date().getMonth()+1,
-            manualInsured:0,
-            rows:[]
-        };
-
-        el('year').value = stateD.year;
-        el('month').value = stateD.month;
-
-        function rebuildRowsD(){
-            stateD.year = +el('year').value;
-            stateD.month = +el('month').value;
-            
-            let n=daysInMonth(stateD.year,stateD.month);
-            
-            const newRows = [...Array(n)].map((_,i) => {
-                const day = i + 1;
-                const existingRow = stateD.rows.find(r => r.day === day);
-                return {
-                    day: day,
-                    type: existingRow ? existingRow.type : weekend(stateD.year, stateD.month, day),
-                    hours: existingRow ? existingRow.hours : ''
-                };
-            });
-
-            stateD.rows = newRows;
-            renderD(); 
-        }
-
-        function hourlyD(){return stateD.salary/stateD.monthHours;}
-
-        function calcRowD(r){
-            let h=Number(r.hours)||0;
-            if(h<=0) return{ot:0,meal:0,sub:0};
-
-            let hourlyRate = hourlyD();
-
-            if(r.type==='國定假日' || r.type==='休息日'){
-                let ot=h*hourlyRate*stateD.rh;
-                let m=h>2?stateD.meal:0;
-                return{ot:Math.round(ot),meal:m,sub:Math.round(ot)+m};
-            }
-            
-            let first=Math.min(h,2)*hourlyRate*stateD.r1;
-            let rest=Math.max(h-2,0)*hourlyRate*stateD.r2;
-            let ot=first+rest;
-            let m=h>2?stateD.meal:0;
-            return{ot:Math.round(ot),meal:m,sub:Math.round(ot)+m};
-        }
-
-        function updateD(){
-            if(toolDContent.style.display==='none') return; 
-
-            stateD.salary = +el('salary').value || 0;
-            stateD.monthHours = +el('monthHours').value || 0;
-            stateD.meal = +el('meal').value || 0;
-            stateD.other = +el('other').value || 0;
-            stateD.r1 = +el('r1').value || 0;
-            stateD.r2 = +el('r2').value || 0;
-            stateD.rh = +el('rh').value || 0;
-            stateD.manualInsured = +el('manualInsured').value || 0;
-            
-            const insuredAuto = pickInsured(stateD.salary);
-            const insured = stateD.manualInsured > 0 ? stateD.manualInsured : insuredAuto;
-            
-            const labor=calcLabor(insured);
-            const nhi=calcNhi(insured);
-            const insAll=labor+nhi;
-
-            el('insuredAuto').textContent = money(insuredAuto);
-            el('insured').textContent = money(insured);
-            el('labor').textContent=money(labor);
-            el('nhi').textContent=money(nhi);
-            el('insCombined').textContent=money(insAll);
-            el('hourly').textContent=money(hourlyD());
-
-            el('ym').textContent=`${stateD.year}/${stateD.month}`;
-            const tbody=el('otBody');
-            let sumOT=0,sumMeal=0,sumSub=0;
-            
-            stateD.rows.forEach((r, idx)=>{
-                const c=calcRowD(r);
-                sumOT+=c.ot;
-                sumMeal+=c.meal;
-                sumSub+=c.sub;
-
-                const tr=tbody.children[idx];
-                if(tr){
-                    tr.children[3].textContent = money(c.ot); 
-                    tr.children[4].textContent = money(c.meal); 
-                    tr.children[5].textContent = money(c.sub); 
-                }
-            });
-
-            el('sumOTPay').textContent=money(sumOT);
-            el('sumMeal').textContent=money(sumMeal);
-            el('sumSub').textContent=money(sumSub);
-            el('sumSubtotal').textContent=money(sumSub);
-            
-            const gross=stateD.salary+sumSub;
-            const net=gross-insAll-stateD.other;
-            
-            el('gross').textContent=money(gross);
-            el('insAll').textContent=money(insAll);
-            el('otherAmount').textContent=money(stateD.other);
-            el('net').textContent=money(net);
-        }
-
-        const debounceUpdateD = debounce(updateD, 300); 
-
-        function renderD(){
-            if(toolDContent.style.display==='none') return; 
-
-            const tbody=el('otBody');
-            tbody.innerHTML=''; 
-
-            stateD.rows.forEach((r, idx)=>{
-                const tr=document.createElement('tr');
-                tr.innerHTML=`
-                    <td>${stateD.year}-${String(stateD.month).padStart(2,'0')}-${String(r.day).padStart(2,'0')}</td>
-                    <td>
-                        <select class="ot-select">
-                            <option>平日</option>
-                            <option>休息日</option>
-                            <option>國定假日</option>
-                        </select>
-                    </td>
-                    <td><input type=number class="ot-hours-input" step=0.5 value=\"${r.hours}\"></td>
-                    <td class=right>0</td> 
-                    <td class=right>0</td> 
-                    <td class=right>0</td> 
-                `;
-                
-                const sel=tr.querySelector('select');
-                sel.value=r.type;
-                sel.onchange=e=>{
-                    r.type=e.target.value;
-                    updateD(); 
-                };
-                
-                const inputEl = tr.querySelector('input');
-                inputEl.addEventListener('input', (e) => {
-                    r.hours = e.target.value; 
-                    debounceUpdateD(); 
-                });
-                
-                tbody.appendChild(tr);
-            });
-            
-            updateD(); 
-        }
-
-        // --- 新增快速填寫平日邏輯 ---
-        el('fillWeekday').onclick = () => {
-            const quickDays = parseInt(el('quickDays').value) || 0;
-            let filledCount = 0;
-            
-            if (quickDays <= 0) return;
-
-            // 找到前 N 個類型為 '平日' 且時數為空或 0 的日期
-            stateD.rows.forEach(r => {
-                if (filledCount < quickDays && r.type === '平日' && (r.hours === '' || parseFloat(r.hours) === 0)) {
-                    r.hours = '3'; // 預設 3 小時
-                    filledCount++;
-                }
-            });
-            
-            renderD();
-        };
-
-        // --- 快速填寫休息日邏輯 (原週末8h) ---
-        el('fillWeekend').onclick = () => {
-            stateD.rows.forEach(r => {
-                if (r.type === '休息日' && (r.hours === '' || parseFloat(r.hours) === 0)) {
-                    r.hours = '8'; 
-                }
-            });
-            renderD(); 
-        };
-        
-        // --- 清空時數邏輯 ---
-        el('clearHours').onclick=()=>{
-            stateD.rows.forEach(r=>r.hours='');
-            renderD(); 
-        };
-
-
-        function bindD(){
-            ['salary','monthHours','meal','other','r1','r2','rh','manualInsured'].forEach(id=>el(id).oninput=updateD);
-            
-            ['year','month'].forEach(id=>el(id).oninput=rebuildRowsD);
-            
-            // 快速填入平日的天數輸入框也要綁定 input，但只需要更新 state 不需要重新 render
-            el('quickDays').oninput = () => {}; 
-        }
-
-        // --- 全域初始化 ---
-        (function init(){
-            window.addEventListener('resize', () => { 
-                computeA(); 
-            });
-            
-            bindD(); 
-            rebuildRowsD(); 
-            computeB(); 
-            computeC(); 
-
-            switchMainTab('A');
-        })();
-    })();
-</script>
-</body>
-</html>
+$('eTol').addEventListener('change',()=>{if(!dxfState.open.length)return;dxfState.problems=diagnoseOpenEndpoints(dxfState.open,Math.max(0,+$('eTol').value||0.01));dxfView.selectedProblem=-1;const baseRows=[...dxfState.closed.map((o,i)=>`<div class="list-row"><span>封閉 ${i+1} <span class="small">${o.type}</span></span><span>${polyLen(o.p,true).toFixed(2)} mm</span></div>`),...dxfState.open.slice(0,30).map((o,i)=>`<div class="list-row"><span>開放 ${i+1} <span class="small">${o.type}</span></span><span>${polyLen(o.p,false).toFixed(2)} mm</span></div>`)].join('');$('eList').innerHTML=baseRows;renderProblemList();drawE()});
+['eWidth','eHeight','eScale'].forEach(id=>{
+    $(id).addEventListener('change',()=>{if(!dxfState.sourceBounds)return;applyScaleE(id==='eWidth'?'width':id==='eHeight'?'height':'scale');analyzeDXF()});
+});
+$('eLockRatio').addEventListener('change',()=>{if(dxfState.sourceBounds){applyScaleE('width');analyzeDXF()}});
+window.addEventListener('resize',()=>{drawA();drawE()});drawA();calcB();calcC();calcD();
+</script></body></html>
